@@ -1,0 +1,9 @@
+# config.yaml
+
+data_dir: sra_data
+
+subdirs:
+  lists: sra_lists
+  output: sra_files
+  logs: logs
+  fastq: fastq_files

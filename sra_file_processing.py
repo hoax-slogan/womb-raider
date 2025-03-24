@@ -13,6 +13,7 @@ from utils import get_sra_lists, write_log
 # properly relog(?) any failed downloads
 # AWS functionality
 # optional fastq conversion!
+# i might want to change the csv_log thing
 
 
 logger = logging.getLogger(__name__)

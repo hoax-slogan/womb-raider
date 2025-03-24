@@ -18,6 +18,7 @@ pytz==2024.2
 requests==2.32.3
 scipy==1.14.1
 six==1.16.0
+tdqm==0.0.1
 tqdm==4.66.5
 tzdata==2024.2
 urllib3==2.2.3

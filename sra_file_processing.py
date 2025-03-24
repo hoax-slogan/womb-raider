@@ -13,7 +13,7 @@ from utils import get_sra_lists, write_log
 # properly relog(?) any failed downloads
 # AWS functionality
 # optional fastq conversion!
-# i might want to change the csv_log thing
+# i might want to change the pipline log and csv_log setup
 
 
 logger = logging.getLogger(__name__)
@@ -29,6 +29,7 @@ def download_sra_files(accession, source_file, max_retries=5):
 
     if os.path.exists(output_path):
         download_status = "Already Exists"
+        # revalidate even if it already exists
         validation_status = validate_sra_files(accession)
         logger.info(f"{accession} already exists, skipping download.")
         return [accession, download_status, validation_status, source_file]
@@ -52,6 +53,7 @@ def download_sra_files(accession, source_file, max_retries=5):
             time.sleep(5)
 
     download_status = "Download Failed"
+    # pass a v status so log writing doesn't break
     validation_status = validate_sra_files(accession)
     return [accession, download_status, validation_status, source_file]
 

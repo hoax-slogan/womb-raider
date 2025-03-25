@@ -18,7 +18,7 @@ SRA_OUTPUT_DIR = os.path.join(DATA_DIR, config["subdirs"]["output"])
 LOGS_DIR = os.path.join(DATA_DIR, config["subdirs"]["logs"])
 FASTQ_DIR = os.path.join(DATA_DIR, config["subdirs"]["fastq"])
 
-# Log files
-CSV_LOG = os.path.join(LOGS_DIR, config["logs"]["csv"])
-LOGGER_LOG = os.path.join(LOGS_DIR, config["logs"]["log"])
+# Log directories
+CSV_LOG_DIR = os.path.join(LOGS_DIR, config["logs"]["csv"])
+PYTHON_LOG_DIR = os.path.join(LOGS_DIR, config["logs"]["python"])
 

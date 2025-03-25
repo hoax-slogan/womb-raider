@@ -7,3 +7,7 @@ subdirs:
   output: sra_files
   logs: logs
   fastq: fastq_files
+
+logs:
+  csv: csv_logs
+  python: python_logs

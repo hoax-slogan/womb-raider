@@ -6,7 +6,7 @@ from tqdm import tqdm
 import csv
 import logging
 
-from config import SRA_OUTPUT_DIR, CSV_LOG
+from config import SRA_OUTPUT_DIR, CSV_LOG_DIR
 from utils import get_sra_lists, write_log
 
 # check if .sra, .sralite, .fastq and then log
@@ -98,11 +98,11 @@ def process_sra_list(batch_size=5):
             )
         
         write_log(results)
-        logger.info(f"Log updated: {CSV_LOG} ({len(results)} entries added)")
+        logger.info(f"Log updated: {CSV_LOG_DIR} ({len(results)} entries added)")
 
 
 def retry_failed_downloads(batch_size=5):
-    with open(CSV_LOG, "r") as log:
+    with open(CSV_LOG_DIR, "r") as log:
         reader = csv.reader(log)
         next(reader) # Skip header
         failed_downloads = [row[0] for row in reader if "Failed" in row[1] or not "Valid" in row[2]]
@@ -114,4 +114,4 @@ def retry_failed_downloads(batch_size=5):
             results = list(tqdm(pool.imap(download_sra_files, failed_downloads), total=len(failed_downloads)))
         
         write_log(results)
-        logger.info(f"Retried failed downloads, log updated: {CSV_LOG} ({len(results)} entries added)")
+        logger.info(f"Retried failed downloads, log updated: {CSV_LOG_DIR} ({len(results)} entries added)")

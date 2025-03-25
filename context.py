@@ -1,7 +1,9 @@
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from config import SRA_LISTS_DIR, SRA_OUTPUT_DIR, LOGS_DIR, FASTQ_DIR, LOG_FILES
+
+from config import SRA_LISTS_DIR, SRA_OUTPUT_DIR, LOGS_DIR, FASTQ_DIR
+from utils import generate_timestamped_logfile
 
 
 def check_and_make_dirs():
@@ -10,12 +12,12 @@ def check_and_make_dirs():
 
 
 def setup_logging():
-    os.makedirs(LOGS_DIR, exist_ok=True)
-    
+    log_filename = generate_timestamped_logfile()
+
     console = logging.StreamHandler()
     console.setLevel(logging.WARNING)
 
-    file_handler = RotatingFileHandler(LOG_FILES, maxBytes=5_000_000, backupCount=3)
+    file_handler = RotatingFileHandler(log_filename, maxBytes=5_000_000, backupCount=3)
     file_handler.setLevel(logging.INFO)
 
     logging.basicConfig(
@@ -24,4 +26,6 @@ def setup_logging():
         handlers=[console, file_handler]
     )
 
-    logging.getLogger().info("Logging system initialized.")
+    logging.getLogger().info(f"Logging system initialized: {log_filename}")
+
+    return log_filename

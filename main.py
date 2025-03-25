@@ -1,4 +1,4 @@
-from setup import check_and_make_dirs, setup_logging
+from context import check_and_make_dirs, setup_logging
 from utils import ensure_csv_log_exists
 import logging
 

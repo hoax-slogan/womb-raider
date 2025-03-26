@@ -56,7 +56,7 @@ class SRADownloader:
         return [accession, status, validation, source_file]
 
 
-    def process_list(self):
+    def process_sra_lists(self):
         for sra_file in get_sra_lists(self.sra_lists_dir):
             accessions = self.log_manager.load_accessions_from_file(sra_file)
 

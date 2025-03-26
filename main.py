@@ -27,7 +27,7 @@ def main():
         status_checker=status_checker
     )
 
-    downloader.process_list()
+    downloader.process_sra_lists()
     downloader.retry_failed()
 
 

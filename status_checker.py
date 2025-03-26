@@ -9,7 +9,7 @@ class DownloadStatusChecker:
 
     def check_status(self, accession: str) -> str:
         """
-        Check if any valid file exists for the given accession. Returns status.
+        Check if any valid file exists for the given accession.
         """
         if self._file_exists(accession):
             return "Already Exists"
@@ -17,7 +17,6 @@ class DownloadStatusChecker:
     def confirm_download(self, accession: str) -> str:
         """
         Check if the download succeeded based on file presence.
-        Returns either "Download OK!" or "Download Failed".
         """
         if self._file_exists(accession):
             return "Download OK!"

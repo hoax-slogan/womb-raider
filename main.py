@@ -2,6 +2,7 @@ from log_setup import check_and_make_dirs, setup_logging
 from utils import ensure_csv_log_exists
 import logging
 
+# i WIP my proj back and forth
 
 def main():
     check_and_make_dirs()

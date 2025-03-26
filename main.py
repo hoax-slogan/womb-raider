@@ -1,16 +1,35 @@
-from log_setup import check_and_make_dirs, setup_logging
-from utils import ensure_csv_log_exists
-import logging
+from config import Config
+from log_manager import LogManager
+from log_setup import setup_logging
+from validators import SRAValidator
+from status_checker import DownloadStatusChecker
+from sra_downloader import SRADownloader
 
-# i WIP my proj back and forth
 
 def main():
-    check_and_make_dirs()
-    setup_logging()
-    ensure_csv_log_exists()
+    config = Config()
+    config.ensure_directories_exist()
 
-    logger = logging.getLogger(__name__)
-    logger.info("CSV log file checked/created.")
+    log_manager = LogManager(config.CSV_LOG_DIR, config.PYTHON_LOG_DIR)
+    python_log_path = log_manager.generate_python_log()
+    setup_logging(python_log_path)
+
+    csv_log_path = log_manager.generate_csv_log()
+
+    validator = SRAValidator(config.SRA_OUTPUT_DIR)
+    status_checker = DownloadStatusChecker(config.SRA_OUTPUT_DIR)
+
+    downloader = SRADownloader(
+        output_dir=config.SRA_OUTPUT_DIR,
+        csv_log_path=csv_log_path,
+        log_manager=log_manager,
+        validator=validator,
+        status_checker=status_checker
+    )
+
+    downloader.process_list()
+    downloader.retry_failed()
+
 
 if __name__ == "__main__":
     main()

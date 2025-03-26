@@ -1,14 +1,11 @@
 from pathlib import Path
 import yaml
 
-class Config(object):
-    def __init__(self, base_dir=None, config_file="config.yaml"):
+
+class Config:
+    def __init__(self, config_file="config.yaml"):
         self.script_dir = Path(__file__).resolve().parent
-        
-        if base_dir:
-            self.base_dir = Path(base_dir).resolve()
-        else:
-            self.base_dir = self.script_dir.parent
+        self.base_dir = self.script_dir.parent
 
         self._load_config(config_file)
         self._set_paths()

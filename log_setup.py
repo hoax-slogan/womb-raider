@@ -1,14 +1,7 @@
-import os
 import logging
 from logging.handlers import RotatingFileHandler
 
-from config import SRA_LISTS_DIR, SRA_OUTPUT_DIR, LOGS_DIR, FASTQ_DIR
 from utils import generate_timestamped_logfile
-
-
-def check_and_make_dirs():
-    for path in [SRA_LISTS_DIR, SRA_OUTPUT_DIR, FASTQ_DIR, LOGS_DIR]:
-        os.makedirs(path, exist_ok=True)
 
 
 def setup_logging():

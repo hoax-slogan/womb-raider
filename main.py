@@ -21,6 +21,7 @@ def main():
 
     downloader = SRADownloader(
         output_dir=config.SRA_OUTPUT_DIR,
+        sra_lists_dir=config.SRA_LISTS_DIR,
         csv_log_path=csv_log_path,
         log_manager=log_manager,
         validator=validator,

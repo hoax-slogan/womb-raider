@@ -1,6 +1,5 @@
 import time
 import subprocess
-import csv
 import logging
 from pathlib import Path
 from multiprocessing import Pool
@@ -12,11 +11,12 @@ from utils import get_sra_lists
 
 
 class SRADownloader:
-    def __init__(self, output_dir: Path, csv_log_path: Path, log_manager: LogManager,
-                validator: SRAValidator, status_checker: DownloadStatusChecker,
+    def __init__(self, output_dir: Path, sra_lists_dir: Path, csv_log_path: Path,
+                log_manager: LogManager, validator: SRAValidator, status_checker: DownloadStatusChecker,
                 max_retries=5, batch_size=5):
         
         self.output_dir = output_dir
+        self.sra_lists_dir= sra_lists_dir
         self.csv_log_path = csv_log_path
         self.log_manager = log_manager
         self.validator = validator
@@ -57,9 +57,8 @@ class SRADownloader:
 
 
     def process_list(self):
-        for sra_file in get_sra_lists():
-            with open(sra_file, "r") as f:
-                accessions = [line.strip() for line in f.readlines()]
+        for sra_file in get_sra_lists(self.sra_lists_dir):
+            accessions = self.log_manager.load_accessions_from_file(sra_file)
 
             self.logger.info(f"Processing {len(accessions)} accessions from {sra_file}")
             with Pool(self.batch_size) as pool:
@@ -72,14 +71,7 @@ class SRADownloader:
 
 
     def retry_failed(self):
-        if not self.csv_log_path.exists():
-            self.logger.warning("No log file found for retries.")
-            return
-
-        with open(self.csv_log_path, "r") as f:
-            reader = csv.reader(f)
-            next(reader)
-            failed = [row[0] for row in reader if "Failed" in row[1] or not "Valid" in row[2]]
+        failed = self.log_manager.get_failed_accessions(self.csv_log_path)
 
         if not failed:
             self.logger.info("No failed accessions found.")

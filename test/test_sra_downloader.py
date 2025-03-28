@@ -240,3 +240,60 @@ def test_retry_failed_structural(mock_download, mock_tqdm, mock_pool_class, tmp_
     mock_download.assert_any_call("SRR111", "retry")
     mock_download.assert_any_call("SRR222", "retry")
     assert mock_download.call_count == 2
+
+
+@patch("pipeline.sra_downloader.subprocess.run")  # Prevent actual downloads
+def test_download_with_fastq_conversion(mock_run, tmp_path):
+    mock_log_manager = MagicMock()
+    mock_validator = MagicMock()
+    mock_status_checker = MagicMock()
+    mock_fastq_converter = MagicMock()
+
+    # Set mock return values
+    mock_status_checker.check_status.return_value = "Not Found"
+    mock_status_checker.confirm_download.return_value = "Download OK!"
+    mock_validator.validate.return_value = "Valid"
+
+    # Patch FASTQConverter to return our mock
+    with patch("pipeline.sra_downloader.FASTQConverter", return_value=mock_fastq_converter):
+        downloader = SRADownloader(
+            output_dir=tmp_path,
+            sra_lists_dir=tmp_path,
+            csv_log_path=tmp_path / "log.csv",
+            log_manager=mock_log_manager,
+            validator=mock_validator,
+            status_checker=mock_status_checker,
+            convert_fastq=True,
+            fastq_threads=2,
+        )
+
+        result = downloader.download("SRR_FAKE001", "fake_list.txt")
+
+    assert result == ["SRR_FAKE001", "Download OK!", "Valid", "fake_list.txt"]
+    mock_fastq_converter.convert.assert_called_once_with("SRR_FAKE001")
+    mock_run.assert_called()  # Ensures subprocess.run was invoked for prefetch
+
+
+def test_download_without_fastq_conversion(tmp_path):
+    mock_log_manager = MagicMock()
+    mock_validator = MagicMock()
+    mock_status_checker = MagicMock()
+
+    mock_status_checker.check_status.return_value = "Not Found"
+    mock_status_checker.confirm_download.return_value = "Download OK!"
+    mock_validator.validate.return_value = "Valid"
+
+    downloader = SRADownloader(
+        output_dir=tmp_path,
+        sra_lists_dir=tmp_path,
+        csv_log_path=tmp_path / "log.csv",
+        log_manager=mock_log_manager,
+        validator=mock_validator,
+        status_checker=mock_status_checker,
+        convert_fastq=False,
+    )
+
+    with patch.object(downloader, "fastq_converter", new=None):
+        result = downloader.download("SRR_FAKE002", "fake_list.txt")
+
+    assert result == ["SRR_FAKE002", "Download OK!", "Valid", "fake_list.txt"]

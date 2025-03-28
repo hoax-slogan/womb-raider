@@ -4,10 +4,10 @@ import logging
 from pathlib import Path
 from multiprocessing import Pool
 from tqdm import tqdm
-from validators import SRAValidator
-from log_manager import LogManager
-from status_checker import DownloadStatusChecker
-from utils import get_sra_lists
+from .validators import SRAValidator
+from .log_manager import LogManager
+from .status_checker import DownloadStatusChecker
+from .utils import get_sra_lists
 
 
 class SRADownloader:

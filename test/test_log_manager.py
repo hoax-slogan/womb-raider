@@ -12,7 +12,14 @@ def test_generate_csv_log_creates_file_with_header(tmp_path):
         lines = f.readlines()
 
     assert lines[0].strip() == "Accession,Download Status,Validation Status,Source File"
-    assert len(lines) == 1  
+    assert len(lines) == 1
+
+
+def test_generate_python_log_creates_file(tmp_path):
+    log_manager = LogManager(csv_log_dir=tmp_path, python_log_dir=tmp_path)
+    path = log_manager.generate_python_log()
+    assert path.parent == tmp_path
+    assert path.name.startswith("pipeline_") and path.suffix == ".log"
 
 
 def test_write_csv_log_appends_entries(tmp_path):

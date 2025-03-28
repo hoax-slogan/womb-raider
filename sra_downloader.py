@@ -56,15 +56,19 @@ class SRADownloader:
         return [accession, status, validation, source_file]
 
 
+    def _download_with_source(self, args):
+        accession, source_file = args
+        return self.download(accession, source_file)
+
+
     def process_sra_lists(self):
         for sra_file in get_sra_lists(self.sra_lists_dir):
             accessions = self.log_manager.load_accessions_from_file(sra_file)
-
             self.logger.info(f"Processing {len(accessions)} accessions from {sra_file}")
+
             with Pool(self.batch_size) as pool:
-                results = list(
-                    tqdm(pool.imap(lambda acc: self.download(acc, sra_file), accessions), total=len(accessions))
-                )
+                args = [(acc, sra_file) for acc in accessions]
+                results = list(tqdm(pool.imap(self._download_with_source, args), total=len(accessions)))
 
             self.log_manager.write_csv_log(results, self.csv_log_path)
             self.logger.info(f"Logged {len(results)} entries to {self.csv_log_path}")

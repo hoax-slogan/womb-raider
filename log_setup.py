@@ -3,6 +3,11 @@ from logging.handlers import RotatingFileHandler
 
 
 def setup_logging(log_path):
+    
+    # Clear existing handlers to allow reconfiguration (important for tests)
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+
     console = logging.StreamHandler()
     console.setLevel(logging.WARNING)
 

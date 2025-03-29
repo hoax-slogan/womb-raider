@@ -7,12 +7,14 @@ class DownloadStatusChecker:
         self.output_dir = output_dir
         self.extensions = extensions
 
+
     def check_status(self, accession: str) -> str:
         """
         Check if any valid file exists for the given accession.
         """
         if self._file_exists(accession):
             return "Already Exists"
+
 
     def confirm_download(self, accession: str) -> str:
         """
@@ -21,6 +23,7 @@ class DownloadStatusChecker:
         if self._file_exists(accession):
             return "Download OK!"
         return "Download Failed"
+    
     
     def _file_exists(self, accession: str) -> bool:
         """

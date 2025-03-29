@@ -48,3 +48,17 @@ def test_file_exists_false(mock_boto3_client):
     handler = S3Handler(bucket_name="test-bucket")
 
     assert handler.file_exists("missing.txt") is False
+
+
+def test_download_file_calls_boto3_download(mock_boto3_client):
+    mock_s3 = MagicMock()
+    mock_boto3_client.return_value = mock_s3
+
+    handler = S3Handler(bucket_name="test-bucket")
+    local_path = Path("downloaded_file.txt")
+
+    handler.download_file("remote_key.txt", local_path)
+
+    mock_s3.download_file.assert_called_once_with(
+        "test-bucket", "remote_key.txt", str(local_path)
+    )

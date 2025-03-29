@@ -23,6 +23,11 @@ class S3Handler:
         self.s3.upload_file(str(local_path), self.bucket_name, s3_key)
 
 
+    def download_file(self, s3_key: str, local_path: Path):
+        logger.info(f"Downloading s3://{self.bucket_name}/{s3_key} to {local_path}")
+        self.s3.download_file(self.bucket_name, s3_key, str(local_path))
+
+
     def file_exists(self, s3_key: str) -> bool:
         try:
             self.s3.head_object(Bucket=self.bucket_name, Key=s3_key)

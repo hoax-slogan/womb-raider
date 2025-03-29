@@ -52,6 +52,7 @@ def main():
         output_dir=cfg.SRA_OUTPUT_DIR,
         sra_lists_dir=cfg.SRA_LISTS_DIR,
         csv_log_path=csv_log_path,
+        fastq_file_dir=cfg.FASTQ_DIR,
         log_manager=log_manager,
         validator=validator,
         status_checker=status_checker,

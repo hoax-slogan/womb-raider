@@ -12,17 +12,18 @@ from .utils import get_sra_lists
 
 
 class SRADownloader:
-    def __init__(self, output_dir: Path, sra_lists_dir: Path, csv_log_path: Path,
+    def __init__(self, output_dir: Path, sra_lists_dir: Path, csv_log_path: Path, fastq_file_dir: Path,
                 log_manager: LogManager, validator: SRAValidator, status_checker: DownloadStatusChecker,
                 convert_fastq=False, fastq_threads=4, max_retries=5, batch_size=5):
         
         self.output_dir = output_dir
         self.sra_lists_dir = sra_lists_dir
         self.csv_log_path = csv_log_path
+        self.fastq_file_dir=fastq_file_dir
         self.log_manager = log_manager
         self.validator = validator
         self.status_checker = status_checker
-        self.fastq_converter = FASTQConverter(output_dir, fastq_threads) if convert_fastq else None
+        self.fastq_converter = FASTQConverter(fastq_file_dir, fastq_threads) if convert_fastq else None
         self.max_retries = max_retries
         self.batch_size = batch_size
         self.logger = logging.getLogger(__name__)

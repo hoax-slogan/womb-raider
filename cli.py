@@ -10,6 +10,12 @@ class CLIArgs:
 
     def _add_arguments(self):
         self.parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Simulate the pipeline without executing downloads or conversions",
+        )
+        
+        self.parser.add_argument(
             "--convert-fastq",
             action="store_true",
             help="Convert .sra to .fastq after download",

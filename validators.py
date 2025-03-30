@@ -2,6 +2,7 @@ from pathlib import Path
 import subprocess
 import logging
 
+
 class SRAValidator:
     def __init__(self, output_dir: Path):
         self.output_dir = output_dir

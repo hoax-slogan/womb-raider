@@ -7,18 +7,18 @@ import enum
 Base = declarative_base()
 
 
-class PipelineStatus(enum.Enum):
-    DOWNLOAD = "download"
-    VALIDATE = "validate"
-    CONVERT = "convert"
-    UPLOAD = "upload"
+class PipelineStatus(str, enum.Enum):
+    PENDING = "Pending"
+    INPROGRESS = "InProgress"
+    COMPLETED = "Completed"
+    FAILED = "Failed"
 
 
-class StepStatus(enum.Enum):
-    Pending = "Pending"
-    Success = "Success"
-    Failed = "Failed"
-    Skipped = "Skipped"
+class StepStatus(str, enum.Enum):
+    PENDING = "Pending"
+    SUCCESS = "Success"
+    FAILED = "Failed"
+    SKIPPED = "Skipped"
 
 
 class Job(Base):

@@ -56,7 +56,6 @@ class SRAOrchestrator:
         return [
             job.accession,
             job.status.download.value,
-            job.run_validation(),
             job.source_file,
         ]
     

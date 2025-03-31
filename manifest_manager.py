@@ -15,7 +15,7 @@ class ManifestManager:
         new_job = JobModel(
             accession=accession,
             source_file=source_file,
-            pipeline_status=PipelineStatus.InProgress  # Default assumption
+            pipeline_status=PipelineStatus.INPROGRESS  # Default assumption
         )
         self.session.add(new_job)
         self.session.commit()
@@ -42,11 +42,11 @@ class ManifestManager:
         ]
 
         if StepStatus.FAILED in statuses:
-            job.pipeline_status = PipelineStatus.Failed
+            job.pipeline_status = PipelineStatus.FAILED
         elif all(s == StepStatus.SUCCESS or s == StepStatus.SKIPPED for s in statuses):
-            job.pipeline_status = PipelineStatus.Completed
+            job.pipeline_status = PipelineStatus.COMPLETED
         else:
-            job.pipeline_status = PipelineStatus.InProgress
+            job.pipeline_status = PipelineStatus.INPROGRESS
 
 
     def get_failed_jobs(self, step_name: str) -> list[JobModel]:

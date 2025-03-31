@@ -1,5 +1,11 @@
+import os
 from pathlib import Path
+
 import yaml
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 
 class Config:
@@ -9,6 +15,12 @@ class Config:
 
         self._load_config(config_file)
         self._set_paths()
+        self._set_database_url()
+    
+    def _set_database_url(self):
+        self.DATABASE_URL = os.getenv("DATABASE_URL")
+        if not self.DATABASE_URL:
+            raise ValueError("Missing DATABASE_URL in environment. Please check your .env file.")
 
     def _load_config(self, config_file):
         with open(self.script_dir / config_file, "r") as f:

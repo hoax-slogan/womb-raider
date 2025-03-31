@@ -6,6 +6,8 @@ from pipeline.log_manager import LogManager
 from pipeline.status_checker import DownloadStatusChecker
 from pipeline.config import Config
 from pipeline.log_setup import setup_logging
+from pipeline.db.session import SessionLocal
+from pipeline.manifest_manager import ManifestManager
 
 
 class FakeSubprocessResult:
@@ -23,6 +25,10 @@ def main():
     cfg = Config()
     cfg.ensure_directories_exist()
     setup_logging(cfg.PYTHON_LOG_DIR / "dry_run.log")
+
+    # setup db
+    session = SessionLocal()
+    manifest = ManifestManager(session)
 
     # Create fake SRA list file
     fake_list = cfg.SRA_LISTS_DIR / "fake_list.txt"
@@ -48,6 +54,7 @@ def main():
     orchestrator = SRAOrchestrator(
         output_dir=cfg.SRA_OUTPUT_DIR,
         sra_lists_dir=cfg.SRA_LISTS_DIR,
+        manifest_manager=manifest,
         csv_log_path=csv_log_path,
         fastq_file_dir=cfg.FASTQ_DIR,
         log_manager=log_manager,

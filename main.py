@@ -1,9 +1,8 @@
 from config import Config
 from log_manager import LogManager
-from log_setup import setup_logging
+from scripts.log_setup import setup_logging
 from validators import SRAValidator
 from status_checker import DownloadStatusChecker
-from sra_downloader import SRADownloader
 
 
 def main():

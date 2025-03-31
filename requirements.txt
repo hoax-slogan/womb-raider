@@ -1,4 +1,5 @@
 anndata==0.10.9
+antiorm==1.2.1
 array_api_compat==1.9
 biothings-client==0.3.1
 boto3==1.37.23
@@ -6,6 +7,7 @@ botocore==1.37.23
 certifi==2024.8.30
 charset-normalizer==3.3.2
 colorama==0.4.6
+db==0.1.1
 exceptiongroup==1.2.2
 GEOparse==2.0.4
 h5py==3.12.1
@@ -20,13 +22,16 @@ pandas==2.2.3
 pluggy==1.5.0
 pytest==8.3.5
 python-dateutil==2.9.0.post0
+python-dotenv==1.1.0
 pytz==2024.2
 PyYAML==6.0.2
 requests==2.32.3
 s3transfer==0.11.4
 scipy==1.14.1
 six==1.16.0
+SQLAlchemy==2.0.40
 tdqm==0.0.1
 tqdm==4.66.5
+typing_extensions==4.13.0
 tzdata==2024.2
 urllib3==2.2.3

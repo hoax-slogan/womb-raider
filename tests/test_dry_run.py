@@ -1,17 +1,15 @@
 from pathlib import Path
 import subprocess
 from multiprocessing.dummy import Pool as ThreadPool
-from pipeline.orchestrator import SRAOrchestrator
-from pipeline.validators import SRAValidator
-from pipeline.log_manager import LogManager
-from pipeline.status_checker import DownloadStatusChecker
-from pipeline.config import Config
-from pipeline.log_setup import setup_logging
-from pipeline.db.session import SessionLocal
-from pipeline.manifest_manager import ManifestManager
+from ..orchestrator import SRAOrchestrator
+from ..validators import SRAValidator
+from ..log_manager import LogManager
+from ..status_checker import DownloadStatusChecker
+from ..config import Config
+from ..log_setup import setup_logging
+from ..db.session import SessionLocal
+from ..manifest_manager import ManifestManager
 
-import sys
-print("[DEBUG] sys.path:", sys.path)
 
 
 # Simulated subprocess result for prefetch

@@ -50,7 +50,13 @@ class LogManager:
             logger.warning(f"Log file does not exist: {log_path}")
             return []
         
+        failed = []
         with log_path.open("r") as f:
             reader = csv.reader(f)
             next(reader)
-            return [row[0] for row in reader if row[1] == StepStatus.FAILED or row[2] == StepStatus.FAILED]
+            for row in reader:
+                download_status = row[1]
+                validation_status = row[2]
+                if download_status == StepStatus.FAILED.value or validation_status == StepStatus.FAILED.value:
+                    failed.append(row[0])
+        return failed

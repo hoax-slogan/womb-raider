@@ -7,12 +7,13 @@ from ..job import Job, StepStatus, PipelineStep
 
 @pytest.fixture
 def mock_manifest_manager():
-    # Mock job status object with default step statuses
+    # Mock job status object with correct step status fields
     mock_status = MagicMock()
-    mock_status.download = None
-    mock_status.validate = None
-    mock_status.convert = None
-    mock_status.upload = None
+    mock_status.download_status = None
+    mock_status.validate_status = None
+    mock_status.convert_status = None
+    mock_status.upload_status = None
+    mock_status.pipeline_status = None
 
     mock_mm = MagicMock()
     mock_mm.get_or_create_job.return_value = mock_status
@@ -44,11 +45,12 @@ def test_run_download_success(mock_run, fake_job):
     result = job.run_download()
 
     assert result is True
-    assert status.download == StepStatus.SUCCESS
+    assert job.download_status == StepStatus.SUCCESS
+    assert status.download_status == StepStatus.SUCCESS
     mock_run.assert_called_once()
 
 
-@patch("pipeline.job.subprocess.run", side_effect=subprocess.CalledProcessError(1, "cmd"))
+@patch("pipeline.job.subprocess.run", side_effect=subprocess.CalledProcessError(1, "cmd", stderr="simulated error"))
 def test_run_download_failure(mock_run, fake_job):
     job, status = fake_job
     job.status_checker.check_status.return_value = "Not Found"
@@ -56,18 +58,21 @@ def test_run_download_failure(mock_run, fake_job):
     result = job.run_download()
 
     assert result is False
-    assert status.download == StepStatus.FAILED
+    assert job.download_status == StepStatus.FAILED
+    assert status.download_status == StepStatus.FAILED
     mock_run.assert_called_once()
 
 
 def test_run_download_skipped(fake_job):
     job, status = fake_job
     job.status_checker.check_status.return_value = "Already Exists"
+    job.status_checker.confirm_download.return_value = "Download OK!"
 
     result = job.run_download()
 
     assert result is True
-    assert status.download == StepStatus.SKIPPED
+    assert job.download_status == StepStatus.SUCCESS
+    assert status.download_status == StepStatus.SUCCESS
 
 
 def test_run_validation_success(fake_job):
@@ -77,7 +82,8 @@ def test_run_validation_success(fake_job):
     result = job.run_validation()
 
     assert result == "Valid"
-    assert status.validate == StepStatus.SUCCESS
+    assert job.validate_status == StepStatus.SUCCESS
+    assert status.validate_status == StepStatus.SUCCESS
 
 
 def test_run_validation_failure(fake_job):
@@ -87,7 +93,8 @@ def test_run_validation_failure(fake_job):
     result = job.run_validation()
 
     assert "Invalid" in result
-    assert status.validate == StepStatus.FAILED
+    assert job.validate_status == StepStatus.FAILED
+    assert status.validate_status == StepStatus.FAILED
 
 
 def test_run_conversion_success(fake_job):
@@ -96,7 +103,8 @@ def test_run_conversion_success(fake_job):
 
     job.run_conversion()
 
-    assert status.convert == StepStatus.SUCCESS
+    assert job.convert_status == StepStatus.SUCCESS
+    assert status.convert_status == StepStatus.SUCCESS
 
 
 def test_run_conversion_failure(fake_job):
@@ -105,7 +113,8 @@ def test_run_conversion_failure(fake_job):
 
     job.run_conversion()
 
-    assert status.convert == StepStatus.FAILED
+    assert job.convert_status == StepStatus.FAILED
+    assert status.convert_status == StepStatus.FAILED
 
 
 def test_run_upload_success(fake_job):
@@ -114,15 +123,17 @@ def test_run_upload_success(fake_job):
 
     job.run_upload(path)
 
-    assert status.upload == StepStatus.SUCCESS
+    assert job.upload_status == StepStatus.SUCCESS
+    assert status.upload_status == StepStatus.SUCCESS
     job.s3_handler.upload_file.assert_called_once_with(path)
 
 
 def test_run_upload_failure(fake_job):
     job, status = fake_job
     path = Path("somefile.txt")
-    job.s3_handler.upload_file.side_effect = Exception("lol kaboom")
+    job.s3_handler.upload_file.side_effect = Exception("kaboom")
 
     job.run_upload(path)
 
-    assert status.upload == StepStatus.FAILED
+    assert job.upload_status == StepStatus.FAILED
+    assert status.upload_status == StepStatus.FAILED

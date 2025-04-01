@@ -2,8 +2,8 @@ import pytest
 from unittest.mock import MagicMock, patch
 from pathlib import Path
 from types import SimpleNamespace
-from pipeline.orchestrator import SRAOrchestrator
-from pipeline.job import Job
+from ..orchestrator import SRAOrchestrator
+from ..job import Job
 
 
 @pytest.fixture
@@ -111,16 +111,24 @@ def test_execute_job_runs_steps(monkeypatch, orchestrator_setup):
     class FakeJob:
         def __init__(self):
             self.accession = "SRR987654"
-            self.status = SimpleNamespace(download=SimpleNamespace(value="Success"))
+            self.download_status = SimpleNamespace(value="Success")
+            self.validate_status = SimpleNamespace(value="Success")
             self.source_file = "source_file.txt"
 
-        def run_download(self): self.download_called = True
+        def run_download(self): self.download_called = True; return True
         def run_validation(self): self.validation_called = True
         def run_conversion(self): self.conversion_called = True
+
+        def to_log_row(self):
+            return [
+                self.accession,
+                self.download_status.value,
+                self.validate_status.value,
+                self.source_file
+            ]
+
 
     monkeypatch.setattr(orchestrator, "create_job", lambda accession, source_file, manifest_manager: FakeJob())
 
     result = orchestrator.execute_job(("SRR987654", "source_file.txt"))
-    assert result.accession == "SRR987654"
-    assert result.status.download.value == "Success"
-    assert result.source_file == "source_file.txt"
+    assert result == ["SRR987654", "Success", "Success", "source_file.txt"]

@@ -1,5 +1,6 @@
 from pathlib import Path
 from ..log_manager import LogManager
+from ..db.models import StepStatus
 
 
 def test_generate_csv_log_creates_file_with_header(tmp_path):
@@ -56,10 +57,10 @@ def test_get_failed_accessions(tmp_path):
     log_path = tmp_path / "log.csv"
     log_path.write_text(
         "Accession,Download Status,Validation Status,Source File\n"
-        "SRR000001,Download OK!,Valid,source1.txt\n"
-        "SRR000002,Download Failed,Valid,source2.txt\n"
-        "SRR000003,Download OK!,Invalid,someerror\n"
-        "SRR000004,Download Failed,Invalid,someerror\n"
+        f"SRR000001,{StepStatus.SUCCESS.value},{StepStatus.SUCCESS.value},source1.txt\n"
+        f"SRR000002,{StepStatus.FAILED.value},{StepStatus.SUCCESS.value},source2.txt\n"
+        f"SRR000003,{StepStatus.SUCCESS.value},{StepStatus.FAILED.value},source3.txt\n"
+        f"SRR000004,{StepStatus.FAILED.value},{StepStatus.FAILED.value},source4.txt\n"
     )
 
     log_manager = LogManager(csv_log_dir=tmp_path, python_log_dir=tmp_path)

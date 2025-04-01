@@ -15,7 +15,7 @@ def test_validate_file_missing(validator):
 
 
 @patch("pipeline.validators.subprocess.run")
-@patch("pipeline.validators.Path.exists")
+@patch("pipeline.validators.Path.is_file")
 def test_validate_success(mock_exists, mock_run, validator):
     accession = "SRR123456"
     mock_exists.return_value = True
@@ -25,7 +25,7 @@ def test_validate_success(mock_exists, mock_run, validator):
 
 
 @patch("pipeline.validators.subprocess.run")
-@patch("pipeline.validators.Path.exists")
+@patch("pipeline.validators.Path.is_file")
 def test_validate_failure(mock_exists, mock_run, validator):
     accession = "SRR123456"
     mock_exists.return_value = True

@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
-from pipeline.config import Config
-from pipeline.db.models import Base 
+from .config import Config
+from .db.models import Base 
 
 
 cfg = Config()

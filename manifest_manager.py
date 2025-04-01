@@ -1,5 +1,9 @@
 from sqlalchemy.orm import Session
-from .db.models import StepStatus, PipelineStatus, Job as JobModel
+from .db.models import StepStatus, PipelineStatus, JobModel
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class ManifestManager:
@@ -10,14 +14,21 @@ class ManifestManager:
     def get_or_create_job(self, accession: str, source_file: str) -> JobModel:
         job = self.session.query(JobModel).filter_by(accession=accession).first()
         if job:
+            logger.debug(f"Found existing job: {accession}")
             return job
 
+        logger.debug(f"Creating new job: {accession}")
         new_job = JobModel(
             accession=accession,
-            source_file=source_file,
-            pipeline_status=PipelineStatus.INPROGRESS  # Default assumption
+            source_file=str(source_file),
+            download_status=StepStatus.PENDING, # pending = default assumption
+            validate_status=StepStatus.PENDING,
+            convert_status=StepStatus.PENDING,
+            upload_status=StepStatus.PENDING,
+            pipeline_status=PipelineStatus.PENDING,
         )
         self.session.add(new_job)
+        print("DEBUG JOB:", new_job.download_status, type(new_job.download_status))
         self.session.commit()
         return new_job
 
@@ -25,11 +36,14 @@ class ManifestManager:
     def update_step_status(self, accession: str, step_name: str, status: StepStatus) -> None:
         job = self.session.query(JobModel).filter_by(accession=accession).first()
         if not job:
+            logger.warning(f"Tried to update status for unknown accession: {accession}")
             return
 
         setattr(job, f"{step_name}_status", status)
         self._update_pipeline_status(job)
+        logger.debug(f"Before commit: {accession} - {step_name}_status = {status}")
         self.session.commit()
+        logger.debug(f"Committed update for {accession}: {step_name} = {status}")
 
 
     def _update_pipeline_status(self, job: JobModel) -> None:

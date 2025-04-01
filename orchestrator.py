@@ -1,17 +1,22 @@
-from multiprocessing import Pool
+from multiprocessing import Pool as DefaultPool
 from tqdm import tqdm
 from typing import Tuple, Callable, Iterable, Any
-from .job import Job
+from pathlib import Path
 import logging
-from .log_manager import LogManager
+
+from .db.models import JobModel
+from .db.session import SessionLocal
+from .manifest_manager import ManifestManager
+
+from .job import Job
 from .utils import get_sra_lists
 
 
 class SRAOrchestrator:
-    def __init__(self, *, output_dir, sra_lists_dir, csv_log_path, fastq_file_dir,
-                log_manager, validator, status_checker,
+    def __init__(self, *, output_dir: Path,sra_lists_dir: Path, csv_log_path: Path,
+                fastq_file_dir: Path, log_manager, validator, status_checker, manifest_manager,
                 convert_fastq=False, fastq_threads=4, max_retries=5, batch_size=5,
-                s3_handler=None):
+                s3_handler=None, pool_cls=DefaultPool):
 
         self.output_dir = output_dir
         self.sra_lists_dir = sra_lists_dir
@@ -20,21 +25,24 @@ class SRAOrchestrator:
         self.log_manager = log_manager
         self.validator = validator
         self.status_checker = status_checker
+        self.manifest_manager = manifest_manager
         self.convert_fastq = convert_fastq
         self.fastq_threads = fastq_threads
         self.max_retries = max_retries
         self.batch_size = batch_size
         self.s3_handler = s3_handler
+        self.pool_cls = pool_cls 
         self.logger = logging.getLogger(__name__)
 
 
-    def create_job(self, accession: str, source_file: str) -> Job:
+    def create_job(self, accession: str, source_file: str, manifest_manager=None) -> Job:
         return Job(
             accession=accession,
             source_file=source_file,
             output_dir=self.output_dir,
             validator=self.validator,
             status_checker=self.status_checker,
+            manifest_manager=manifest_manager or self.manifest_manager,
             fastq_converter=self._get_fastq_converter(),
             s3_handler=self.s3_handler
         )
@@ -48,20 +56,31 @@ class SRAOrchestrator:
 
 
     def execute_job(self, args: Tuple[str, str]):
-        job = self.create_job(*args)
-        job.run_download()
-        job.run_validation()
-        job.run_conversion()
-        # Upload logic could go here later if needed
-        return [
-            job.accession,
-            job.status.download.value,
-            job.source_file,
-        ]
-    
+        accession, source_file = args
+        session = SessionLocal()
+        try:
+            manifest_manager = ManifestManager(session)
+            job = self.create_job(
+                accession=accession,
+                source_file=source_file,
+                manifest_manager=manifest_manager
+            )
+
+            download_ok = job.run_download()
+            job.run_validation()
+
+            if download_ok:
+                job.run_conversion()
+
+            # Extract plain log row BEFORE closing the session
+            return job.to_log_row()
+
+        finally:
+            session.close()
+
 
     def process_batch(self, func: Callable[[Any], Any], args: Iterable[Any]) -> list[Any]:
-        with Pool(self.batch_size) as pool:
+        with self.pool_cls(self.batch_size) as pool:
             return list(tqdm(pool.imap(func, args), total=len(args)))
 
 
@@ -86,5 +105,4 @@ class SRAOrchestrator:
         self.logger.info(f"Retrying {len(failed)} failed accessions...")
         args = [(acc, "retry") for acc in failed]
         results = self.process_batch(self.execute_job, args)
-
         self.log_manager.write_csv_log(results, self.csv_log_path)

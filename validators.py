@@ -8,14 +8,16 @@ class SRAValidator:
         self.output_dir = output_dir
         self.logger = logging.getLogger(__name__)
 
+
     def validate(self, accession: str) -> str:
         sra_file = self.output_dir / accession / f"{accession}.sra"
-
-        if not sra_file.exists():
-            self.logger.warning(f"{accession}.sra not found for validation")
+        exists = sra_file.is_file()
+        
+        if not exists:
+            self.logger.info(f"{accession}: File Missing!")
             return "File Missing"
-
-        self.logger.info(f"Validating {accession}.sra...")
+        
+        print(f"RUNNING vdb-validate on: {sra_file}")
         result = subprocess.run(["vdb-validate", str(sra_file)], capture_output=True, text=True)
 
         if result.returncode == 0:
@@ -24,4 +26,4 @@ class SRAValidator:
         else:
             error = result.stderr.strip()
             self.logger.error(f"Validation failed for {accession}: {error}")
-            return f"Invalid: {error}"
+            return f"Invalid: {result.stderr.strip()}"

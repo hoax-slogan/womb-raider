@@ -17,7 +17,7 @@ class SRAValidator:
             self.logger.info(f"{accession}: File Missing!")
             return "File Missing"
         
-        print(f"RUNNING vdb-validate on: {sra_file}")
+        self.logger.info(f"RUNNING vdb-validate on: {sra_file}")
         result = subprocess.run(["vdb-validate", str(sra_file)], capture_output=True, text=True)
 
         if result.returncode == 0:

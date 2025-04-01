@@ -103,6 +103,6 @@ class SRAOrchestrator:
             return
 
         self.logger.info(f"Retrying {len(failed)} failed accessions...")
-        args = [(acc, "retry") for acc in failed]
+        args = [(acc, "Retry") for acc in failed]
         results = self.process_batch(self.execute_job, args)
         self.log_manager.write_csv_log(results, self.csv_log_path)

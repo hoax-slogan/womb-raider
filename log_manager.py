@@ -37,7 +37,6 @@ class LogManager:
     def write_csv_log(self, results: list[list[str]], log_path: Path) -> None:
         with log_path.open("a", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["Accession", "Download Status", "Validate Status", "Source File"])
             writer.writerows(results)
     
 

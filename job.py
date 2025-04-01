@@ -145,5 +145,5 @@ class Job:
             self.accession,
             self.status.download_status.value,
             self.status.validate_status.value,
-            self.source_file,
+            str(self.source_file),
         ]

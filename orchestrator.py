@@ -4,7 +4,6 @@ from typing import Tuple, Callable, Iterable, Any
 from pathlib import Path
 import logging
 
-from .db.models import JobModel
 from .db.session import SessionLocal
 from .manifest_manager import ManifestManager
 
@@ -57,6 +56,9 @@ class SRAOrchestrator:
 
     def execute_job(self, args: Tuple[str, str]):
         accession, source_file = args
+        
+        # create local session per job executed
+        # so no anoying orm detachedinstance error
         session = SessionLocal()
         try:
             manifest_manager = ManifestManager(session)

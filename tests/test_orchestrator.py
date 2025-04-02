@@ -26,7 +26,8 @@ def orchestrator_setup():
         fastq_threads=4,
         max_retries=3,
         batch_size=2,
-        s3_handler=None
+        s3_handler=None,
+        cleanup_local=False
     )
 
     return orchestrator, mock_log_manager
@@ -168,3 +169,63 @@ def test_execute_job_runs_conversion_if_enabled(monkeypatch, orchestrator_setup)
 
     assert result == ["SRR987654", "Success", "Success", "source_file.txt"]
     assert job_holder["job"].conversion_ran is True
+
+
+def test_cleanup_removes_files_if_they_exist(orchestrator_setup):
+    orchestrator, _ = orchestrator_setup
+    orchestrator.cleanup_local = True
+    mock_fastq1 = MagicMock()
+    mock_fastq2 = MagicMock()
+    mock_sra = MagicMock()
+
+    mock_fastq1.exists.return_value = True
+    mock_fastq2.exists.return_value = True
+    mock_sra.exists.return_value = True
+
+    accession = "SRR123456"
+
+    orchestrator.output_dir = MagicMock()
+    mock_accession_dir = MagicMock()
+    orchestrator.output_dir.__truediv__.return_value = mock_accession_dir
+    mock_accession_dir.__truediv__.return_value = mock_sra
+
+    orchestrator._cleanup_files(accession, [mock_fastq1, mock_fastq2])
+
+    mock_fastq1.unlink.assert_called_once()
+    mock_fastq2.unlink.assert_called_once()
+    mock_sra.unlink.assert_called_once()
+
+
+def test_cleanup_directory_removes_empty_folder(orchestrator_setup):
+    orchestrator, _ = orchestrator_setup
+
+    accession = "SRR123456"
+    mock_accession_dir = MagicMock()
+    mock_accession_dir.exists.return_value = True
+    mock_accession_dir.iterdir.return_value = iter([])  # Empty directory
+    mock_accession_dir.rmdir = MagicMock()
+
+    # Patch output_dir / accession to return mock_accession_dir
+    orchestrator.output_dir = MagicMock()
+    orchestrator.output_dir.__truediv__.return_value = mock_accession_dir
+
+    orchestrator._cleanup_directory(accession)
+
+    mock_accession_dir.rmdir.assert_called_once()
+
+
+def test_cleanup_directory_skips_non_empty_folder(orchestrator_setup):
+    orchestrator, _ = orchestrator_setup
+
+    accession = "SRR123456"
+    mock_accession_dir = MagicMock()
+    mock_accession_dir.exists.return_value = True
+    mock_accession_dir.iterdir.return_value = iter(["something_inside"])
+    mock_accession_dir.rmdir = MagicMock()
+
+    orchestrator.output_dir = MagicMock()
+    orchestrator.output_dir.__truediv__.return_value = mock_accession_dir
+
+    orchestrator._cleanup_directory(accession)
+
+    mock_accession_dir.rmdir.assert_not_called()

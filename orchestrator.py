@@ -15,7 +15,7 @@ class SRAOrchestrator:
     def __init__(self, *, output_dir: Path,sra_lists_dir: Path, csv_log_path: Path,
                 fastq_file_dir: Path, log_manager, validator, status_checker, manifest_manager,
                 convert_fastq=False, fastq_threads=4, max_retries=5, batch_size=5,
-                s3_handler=None, pool_cls=DefaultPool):
+                s3_handler=None,  cleanup_local=False, pool_cls=DefaultPool):
 
         self.output_dir = output_dir
         self.sra_lists_dir = sra_lists_dir
@@ -30,7 +30,8 @@ class SRAOrchestrator:
         self.max_retries = max_retries
         self.batch_size = batch_size
         self.s3_handler = s3_handler
-        self.pool_cls = pool_cls 
+        self.cleanup_local = cleanup_local
+        self.pool_cls = pool_cls
         self.logger = logging.getLogger(__name__)
 
 
@@ -58,8 +59,8 @@ class SRAOrchestrator:
         accession, source_file = args
         fastq_files = []
         
-        # create local session per job executed
-        # so no anoying orm detachedinstance error
+        # create local orm session per job executed
+        # so no anoying detachedinstance error
         session = SessionLocal()
         try:
             manifest_manager = ManifestManager(session)
@@ -81,6 +82,11 @@ class SRAOrchestrator:
                 for file in fastq_files:
                     job.run_upload(file)
                     self.logger.info(f"Uploaded {file.name} to S3")
+            
+            # clean those cups and those spoons
+            if self.cleanup_local:
+                self._cleanup_files(accession, fastq_files)
+                    
 
             # Extract plain log row BEFORE closing the session
             return job.to_log_row()
@@ -116,3 +122,34 @@ class SRAOrchestrator:
         args = [(acc, "Retry") for acc in failed]
         results = self.process_batch(self.execute_job, args)
         self.log_manager.write_csv_log(results, self.csv_log_path)
+
+    
+    def _cleanup_files(self, accession: str, fastq_files: list[Path]):
+        sra_file = self.output_dir / accession / f"{accession}.sra"
+        all_files = fastq_files + [sra_file]
+
+        for file in all_files:
+            try:
+                if file.exists():
+                    file.unlink()
+                    self.logger.info(f"Deleted local file: {file}")
+                else:
+                    self.logger.debug(f"File not found during cleanup: {file}")
+            except Exception as e:
+                self.logger.warning(f"Failed to delete {file}: {e}")
+        
+        # scrub directory after files
+        self._cleanup_directory(accession)
+    
+
+    def _cleanup_directory(self, accession: str):
+        accession_dir = self.output_dir / accession
+
+        try:
+            if accession_dir.exists() and not any(accession_dir.iterdir()):
+                accession_dir.rmdir()
+                self.logger.info(f"Removed empty accession folder: {accession_dir}")
+            else:
+                self.logger.debug(f"Directory not empty, skipping removal: {accession_dir}")
+        except Exception as e:
+            self.logger.warning(f"Failed to delete folder {accession_dir}: {e}")

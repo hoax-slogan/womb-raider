@@ -1,8 +1,10 @@
 from pathlib import Path
 import subprocess
+from unittest.mock import MagicMock
 from multiprocessing.dummy import Pool as ThreadPool
 from ..orchestrator import SRAOrchestrator
 from ..validators import SRAValidator
+from ..fastq_converter import FASTQConverter
 from ..log_manager import LogManager
 from ..status_checker import DownloadStatusChecker
 from ..config import Config
@@ -54,6 +56,13 @@ def main():
         "Download OK!" if acc == "SRR_FAKE001" else "Download Failed"
     )
 
+    # Pretend conversion always succeeds
+    FASTQConverter.convert = lambda self, acc: True
+
+    # Pretend all files exist and print instead of deleting
+    Path.exists = lambda self: True
+    # Path.unlink = lambda self: print(f"[DRY RUN] Would delete: {self}")
+
     # --- INITIALIZE COMPONENTS ---
 
     log_manager = LogManager(
@@ -74,11 +83,12 @@ def main():
         validator=validator,
         status_checker=status_checker,
         manifest_manager=manifest,
-        convert_fastq=False,
+        convert_fastq=True,
         fastq_threads=4,
         max_retries=3,
         batch_size=2,
         s3_handler=None,
+        cleanup_local=True,
         pool_cls=ThreadPool
     )
 

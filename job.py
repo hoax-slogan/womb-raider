@@ -94,23 +94,33 @@ class Job:
         result = self.validator.validate(self.accession)
 
         if result.strip() == "Valid":
-            print(f"-> Marking {self.accession} as SUCCESS")
+            logger.info(f"Marking {self.accession} as SUCCESS")
             self._update_status(PipelineStep.VALIDATE, StepStatus.SUCCESS)
         else:
-            print(f"-> Marking {self.accession} as FAILED")
+            logger.warning(f"Marking {self.accession} as FAILED")
             self._update_status(PipelineStep.VALIDATE, StepStatus.FAILED)
 
         return result
 
 
-    def run_conversion(self):
+    def run_conversion(self) -> list[Path]:
         if self.fastq_converter:
             success = self.fastq_converter.convert(self.accession)
 
             if success:
                 self._update_status(PipelineStep.CONVERT, StepStatus.SUCCESS)
+
+                fastq_prefix = self.fastq_converter.output_dir / self.accession
+                r1 = fastq_prefix.with_name(f"{fastq_prefix.name}_1.fastq")
+                r2 = fastq_prefix.with_name(f"{fastq_prefix.name}_2.fastq")
+
+                output_files = [r1, r2] if r1.exists() and r2.exists() else []
+                return output_files
+
             else:
                 self._update_status(PipelineStep.CONVERT, StepStatus.FAILED)
+                
+        return []
 
 
     def run_upload(self, local_file: Path):

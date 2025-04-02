@@ -56,6 +56,7 @@ class SRAOrchestrator:
 
     def execute_job(self, args: Tuple[str, str]):
         accession, source_file = args
+        fastq_files = []
         
         # create local session per job executed
         # so no anoying orm detachedinstance error
@@ -71,8 +72,15 @@ class SRAOrchestrator:
             download_ok = job.run_download()
             job.run_validation()
 
-            if download_ok:
-                job.run_conversion()
+            # if download successful + convert fastq flag = true
+            if download_ok and self.convert_fastq:
+                fastq_files = job.run_conversion()
+            
+            # if s3 handler flagged and fast_q files converted
+            if self.s3_handler and fastq_files:
+                for file in fastq_files:
+                    job.run_upload(file)
+                    self.logger.info(f"Uploaded {file.name} to S3")
 
             # Extract plain log row BEFORE closing the session
             return job.to_log_row()

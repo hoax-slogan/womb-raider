@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 from pathlib import Path
 from types import SimpleNamespace
 from ..orchestrator import SRAOrchestrator
-from ..job import Job
 
 
 @pytest.fixture
@@ -132,3 +131,40 @@ def test_execute_job_runs_steps(monkeypatch, orchestrator_setup):
 
     result = orchestrator.execute_job(("SRR987654", "source_file.txt"))
     assert result == ["SRR987654", "Success", "Success", "source_file.txt"]
+
+
+def test_execute_job_runs_conversion_if_enabled(monkeypatch, orchestrator_setup):
+    orchestrator, _ = orchestrator_setup
+    orchestrator.convert_fastq = True  # override fixture default
+
+    job_holder = {}
+
+    class FakeJob:
+        def __init__(self):
+            self.accession = "SRR987654"
+            self.download_status = SimpleNamespace(value="Success")
+            self.validate_status = SimpleNamespace(value="Success")
+            self.convert_status = None
+            self.source_file = "source_file.txt"
+            self.conversion_ran = False
+
+        def run_download(self): return True
+        def run_validation(self): pass
+        def run_conversion(self):
+            self.conversion_ran = True
+            return [Path("/fake/fastq/SRR987654_1.fastq"), Path("/fake/fastq/SRR987654_2.fastq")]
+
+        def to_log_row(self):
+            return [self.accession, "Success", "Success", self.source_file]
+
+    def fake_create_job(accession, source_file, manifest_manager):
+        job = FakeJob()
+        job_holder["job"] = job
+        return job
+
+    monkeypatch.setattr(orchestrator, "create_job", fake_create_job)
+
+    result = orchestrator.execute_job(("SRR987654", "source_file.txt"))
+
+    assert result == ["SRR987654", "Success", "Success", "source_file.txt"]
+    assert job_holder["job"].conversion_ran is True

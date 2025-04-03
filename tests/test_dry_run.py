@@ -1,8 +1,8 @@
 from pathlib import Path
 import subprocess
-from unittest.mock import MagicMock
 from multiprocessing.dummy import Pool as ThreadPool
-from ..orchestrator import SRAOrchestrator
+
+from ..job_orchestrator import SRAOrchestrator
 from ..validators import SRAValidator
 from ..fastq_converter import FASTQConverter
 from ..log_manager import LogManager
@@ -13,8 +13,7 @@ from ..db.session import SessionLocal
 from ..manifest_manager import ManifestManager
 
 
-
-# Simulated subprocess result for prefetch
+# --- Simulated subprocess result ---
 class FakeSubprocessResult:
     def __init__(self):
         self.returncode = 0
@@ -22,13 +21,15 @@ class FakeSubprocessResult:
         self.stderr = ""
 
 
-# Monkey-patched subprocess.run to avoid real downloads
+# --- Monkey-patched subprocess.run to avoid real downloads ---
 def fake_subprocess_run(*args, **kwargs):
     return FakeSubprocessResult()
 
 
 def main():
-    # --- SETUP ---
+    print("\n=== DRY RUN STARTED ===")
+
+    # --- CONFIG + LOGGING ---
     cfg = Config()
     cfg.ensure_directories_exist()
     setup_logging(cfg.PYTHON_LOG_DIR / "dry_run.log")
@@ -36,35 +37,33 @@ def main():
     session = SessionLocal()
     manifest = ManifestManager(session)
 
-    # Create fake SRA list file with 2 accessions
+    # --- FAKE SRA LIST SETUP ---
     fake_list = cfg.SRA_LISTS_DIR / "fake_list.txt"
     fake_list.write_text("SRR_FAKE001\nSRR_FAKE002\n")
 
-    # Simulate a .sra file already existing for SRR_FAKE001
     fake_existing = cfg.SRA_OUTPUT_DIR / "SRR_FAKE001"
     fake_existing.mkdir(parents=True, exist_ok=True)
     (fake_existing / "SRR_FAKE001.sra").touch()
 
-    # --- PATCH EXTERNAL DEPENDENCIES ---
-
-    # Monkey patch subprocess
+    # --- PATCHING EXTERNALS ---
     subprocess.run = fake_subprocess_run
 
-    # Patch status checker methods to simulate realistic outcomes
-    DownloadStatusChecker.check_status = lambda self, acc: "Already Exists" if acc == "SRR_FAKE001" else "Not Found"
+    DownloadStatusChecker.check_status = lambda self, acc: (
+        "Already Exists" if acc == "SRR_FAKE001" else "Not Found"
+    )
     DownloadStatusChecker.confirm_download = lambda self, acc: (
         "Download OK!" if acc == "SRR_FAKE001" else "Download Failed"
     )
 
-    # Pretend conversion always succeeds
-    FASTQConverter.convert = lambda self, acc: True
+    FASTQConverter.convert = lambda self, acc: [
+        Path(f"/fake/fastq/{acc}_1.fastq"),
+        Path(f"/fake/fastq/{acc}_2.fastq")
+    ]
 
-    # Pretend all files exist and print instead of deleting
-    Path.exists = lambda self: True
+    Path.exists = lambda self: True  # Always "exists"
     # Path.unlink = lambda self: print(f"[DRY RUN] Would delete: {self}")
 
-    # --- INITIALIZE COMPONENTS ---
-
+    # --- COMPONENT SETUP ---
     log_manager = LogManager(
         csv_log_dir=cfg.CSV_LOG_DIR,
         python_log_dir=cfg.PYTHON_LOG_DIR
@@ -92,9 +91,11 @@ def main():
         pool_cls=ThreadPool
     )
 
-    # --- RUN ORCHESTRATION DRY RUN ---
+    # --- DRY RUN ORCHESTRATION ---
     orchestrator.process_sra_lists()
     orchestrator.retry_failed()
+
+    print("=== DRY RUN COMPLETE ===\n")
 
 
 if __name__ == "__main__":

@@ -121,6 +121,20 @@ class Job:
                 self._update_status(PipelineStep.CONVERT, StepStatus.FAILED)
                 
         return []
+    
+
+    def run_alignment(self) -> Path:
+        if not self.fastq_converter:
+            raise RuntimeError("FASTQ converter must run before alignment.")
+
+        star_runner = STARRunner(
+            genome_dir=self.genome_dir,
+            output_dir=self.output_dir / self.accession,
+            threads=self.star_threads
+        )
+
+        fastq_paths = self.fastq_converter.get_fastq_paths(self.accession)
+        return star_runner.align(self.accession, fastq_paths)
 
 
     def run_upload(self, local_file: Path):

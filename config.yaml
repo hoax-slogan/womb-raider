@@ -7,7 +7,13 @@ subdirs:
   output: sra_files
   logs: logs
   fastq: fastq_files
+  star_output: star_output
 
 logs:
   csv: csv_logs
   python: python_logs
+
+star:
+  genome_dir: genome_ref
+  threads: 4
+  output_prefix: STAR_

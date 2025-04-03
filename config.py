@@ -17,18 +17,22 @@ class Config:
         self._set_paths()
         self._set_database_url()
     
+
     def _set_database_url(self):
         self.DATABASE_URL = os.getenv("DATABASE_URL")
         if not self.DATABASE_URL:
             raise ValueError("Missing DATABASE_URL in environment. Please check your .env file.")
 
+
     def _load_config(self, config_file):
         with open(self.script_dir / config_file, "r") as f:
             self.config = yaml.safe_load(f)
 
+
     def _path(self, *args):
         """Helper to build paths more cleanly."""
         return self.base_dir.joinpath(*args)
+
 
     def _set_paths(self):
         self.DATA_DIR = self._path(self.config["data_dir"])
@@ -38,16 +42,24 @@ class Config:
         self.SRA_OUTPUT_DIR = self.DATA_DIR / subdirs["output"]
         self.LOGS_DIR = self.DATA_DIR / subdirs["logs"]
         self.FASTQ_DIR = self.DATA_DIR / subdirs["fastq"]
+        self.STAR_OUTPUT_DIR = self.DATA_DIR / subdirs["star_output"]
 
         logs = self.config["logs"]
         self.CSV_LOG_DIR = self.LOGS_DIR / logs["csv"]
         self.PYTHON_LOG_DIR = self.LOGS_DIR / logs["python"]
+
+        star = self.config["star"]
+        self.STAR_GENOME_DIR = self.DATA_DIR / star["genome_dir"]
+        self.STAR_THREADS = star["threads"]
+        self.STAR_OUTPUT_PREFIX = star["output_prefix"]
+
 
     def ensure_directories_exist(self):
         dirs: list[Path] = [
             self.SRA_LISTS_DIR,
             self.SRA_OUTPUT_DIR,
             self.FASTQ_DIR,
+            self.STAR_OUTPUT_DIR,
             self.CSV_LOG_DIR,
             self.PYTHON_LOG_DIR,
         ]

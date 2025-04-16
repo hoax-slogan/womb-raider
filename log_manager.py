@@ -1,8 +1,11 @@
 from pathlib import Path
 import csv
 import logging
+
 from datetime import datetime
 from .db.models import StepStatus
+
+from .constants import CSV_HEADER
 
 
 logger = logging.getLogger(__name__)
@@ -21,7 +24,7 @@ class LogManager:
 
         with log_path.open("w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["Accession", "Download Status", "Validation Status", "Source File"])
+            writer.writerow([CSV_HEADER])
 
         logger.info(f"Created new CSV log file: {log_path}")
         return log_path
@@ -55,8 +58,7 @@ class LogManager:
             reader = csv.reader(f)
             next(reader)
             for row in reader:
-                download_status = row[1]
-                validation_status = row[2]
-                if download_status == StepStatus.FAILED.value or validation_status == StepStatus.FAILED.value:
+                statuses = row[1:6]  # All step statuses
+                if any(status == StepStatus.FAILED.value for status in statuses):
                     failed.append(row[0])
         return failed

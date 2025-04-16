@@ -27,7 +27,7 @@ class STARRunner:
 
         self.logger.info(f"STAR completed for {accession}")
         return self.output_prefix.with_name("STAR_Aligned.out.sam")
-    
+
 
     def _build_star_command(self, fastq_files: list[Path]) -> list[str]:
         return [

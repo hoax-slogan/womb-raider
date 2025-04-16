@@ -17,10 +17,10 @@ class JobRunner:
         self.cleanup_local = cleanup_local
         self.logger = logger
 
-    
+
     def run(self, accession: str, source_file: str) -> list[str]:
         fastq_files = []
-        
+    
         # create local orm session per job executed
         # so no anoying detachedinstance error
         session = SessionLocal()
@@ -49,11 +49,11 @@ class JobRunner:
                 for file in fastq_files:
                     job.run_upload(file)
                     self.logger.info(f"Uploaded {file.name} to S3")
-            
+
             # clean those cups and those spoons
             if self.cleanup_local:
                 self._cleanup_files(accession, fastq_files)
-                    
+
 
             # Extract plain log row BEFORE closing the session
             return job.to_log_row()
@@ -75,10 +75,10 @@ class JobRunner:
                     self.logger.debug(f"File not found during cleanup: {file}")
             except Exception as e:
                 self.logger.warning(f"Failed to delete {file}: {e}")
-        
+
         # scrub directory after files
         self._cleanup_directory(accession)
-    
+
 
     def _cleanup_directory(self, accession: str):
         accession_dir = self.output_dir / accession

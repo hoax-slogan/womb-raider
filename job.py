@@ -3,22 +3,19 @@ import logging
 import subprocess
 from enum import Enum
 from typing import Optional
+
 from .validators import SRAValidator
 from .status_checker import DownloadStatusChecker
 from .fastq_converter import FASTQConverter
+from .star_runner import STARRunner
 from .aws_handler import S3Handler
 from .manifest_manager import ManifestManager
 from .db.models import StepStatus
 
+from .enums import PipelineStep
+
 
 logger = logging.getLogger(__name__)
-
-
-class PipelineStep(str, Enum):
-    DOWNLOAD = "download"
-    VALIDATE = "validate"
-    CONVERT = "convert"
-    UPLOAD = "upload"
 
 
 class Job:
@@ -32,6 +29,7 @@ class Job:
         manifest_manager: ManifestManager,
         fastq_converter: Optional[FASTQConverter] = None,
         s3_handler: Optional[S3Handler] = None,
+        star_runner: Optional[STARRunner] = None,
     ):
         self.accession = accession
         self.source_file = source_file
@@ -41,6 +39,7 @@ class Job:
         self.manifest_manager = manifest_manager
         self.fastq_converter = fastq_converter
         self.s3_handler = s3_handler
+        self.star_runner = star_runner
 
         job_record = self.manifest_manager.get_or_create_job(
             accession=self.accession,
@@ -127,14 +126,24 @@ class Job:
         if not self.fastq_converter:
             raise RuntimeError("FASTQ converter must run before alignment.")
 
-        star_runner = STARRunner(
-            genome_dir=self.genome_dir,
-            output_dir=self.output_dir / self.accession,
-            threads=self.star_threads
-        )
+        try:
+            fastq_paths = self.fastq_converter.get_fastq_paths(self.accession)
 
-        fastq_paths = self.fastq_converter.get_fastq_paths(self.accession)
-        return star_runner.align(self.accession, fastq_paths)
+            star_runner = STARRunner(
+                genome_dir=self.genome_dir,
+                output_dir=self.output_dir / self.accession,
+                output_prefix=f"STAR_{self.accession}_",
+                threads=self.star_threads
+            )
+
+            result_path = star_runner.align(self.accession, fastq_paths)
+            self._update_status(PipelineStep.ALIGN, StepStatus.SUCCESS)
+            return result_path
+
+        except Exception as e:
+            logger.error(f"STAR alignment failed for {self.accession}: {e}")
+            self._update_status(PipelineStep.ALIGN, StepStatus.FAILED)
+            return None
 
 
     def run_upload(self, local_file: Path):
@@ -150,17 +159,6 @@ class Job:
     def _update_status(self, step: PipelineStep, status: StepStatus):
         setattr(self.status, f"{step.value}_status", status)
         self.manifest_manager.update_step_status(self.accession, step.value, status)
-
-        # Update local attributes to stay fresh after DB session closes
-        if step == PipelineStep.DOWNLOAD:
-            self.download_status = status
-        elif step == PipelineStep.VALIDATE:
-            self.validate_status = status
-        elif step == PipelineStep.CONVERT:
-            self.convert_status = status
-        elif step == PipelineStep.UPLOAD:
-            self.upload_status = status
-
         logger.debug(f"Updated status: {step.value} = {status.value} for {self.accession}")
 
 
@@ -169,5 +167,8 @@ class Job:
             self.accession,
             self.status.download_status.value,
             self.status.validate_status.value,
+            self.status.convert_status.value,
+            self.status.align_status.value,
+            self.status.upload_status.value,
             str(self.source_file),
         ]

@@ -12,35 +12,25 @@ def job_runner():
         manifest_manager=MagicMock(),
         validator=MagicMock(),
         status_checker=MagicMock(),
+        star_runner=MagicMock(),
         s3_handler=None,
         fastq_converter=None,
-        cleanup_local=True,
         logger=MagicMock()
     )
 
 
-def test_cleanup_files_removes_files(job_runner):
+def test_cleanup_fastq_files_removes_files(job_runner):
     mock_fastq1 = MagicMock()
     mock_fastq2 = MagicMock()
-    mock_sra = MagicMock()
-
     mock_fastq1.exists.return_value = True
     mock_fastq2.exists.return_value = True
-    mock_sra.exists.return_value = True
 
-    accession = "SRR123456"
+    job_runner._safe_unlink = MagicMock()
 
-    # Patch output_dir / accession / file path
-    job_runner.output_dir = MagicMock()
-    mock_accession_dir = MagicMock()
-    job_runner.output_dir.__truediv__.return_value = mock_accession_dir
-    mock_accession_dir.__truediv__.return_value = mock_sra
+    job_runner._cleanup_fastq_files([mock_fastq1, mock_fastq2])
 
-    job_runner._cleanup_files(accession, [mock_fastq1, mock_fastq2])
-
-    mock_fastq1.unlink.assert_called_once()
-    mock_fastq2.unlink.assert_called_once()
-    mock_sra.unlink.assert_called_once()
+    job_runner._safe_unlink.assert_any_call(mock_fastq1)
+    job_runner._safe_unlink.assert_any_call(mock_fastq2)
 
 
 def test_cleanup_directory_skips_non_empty(job_runner):
@@ -52,7 +42,7 @@ def test_cleanup_directory_skips_non_empty(job_runner):
     job_runner.output_dir = MagicMock()
     job_runner.output_dir.__truediv__.return_value = mock_accession_dir
 
-    job_runner._cleanup_directory(accession)
+    job_runner._cleanup_directories(accession)
     mock_accession_dir.rmdir.assert_not_called()
 
 
@@ -65,5 +55,5 @@ def test_cleanup_directory_removes_empty(job_runner):
     job_runner.output_dir = MagicMock()
     job_runner.output_dir.__truediv__.return_value = mock_accession_dir
 
-    job_runner._cleanup_directory(accession)
+    job_runner._cleanup_directories(accession)
     mock_accession_dir.rmdir.assert_called_once()

@@ -1,14 +1,13 @@
 from pathlib import Path
 import logging
 import subprocess
-from enum import Enum
 from typing import Optional
 
 from .validators import SRAValidator
 from .status_checker import DownloadStatusChecker
 from .fastq_converter import FASTQConverter
 from .star_runner import STARRunner
-from .aws_handler import S3Handler
+from .s3_handler import S3Handler
 from .manifest_manager import ManifestManager
 from .db.models import StepStatus
 
@@ -67,7 +66,7 @@ class Job:
 
             try:
                 result = subprocess.run(
-                    ["prefetch", "--max-size", "100G", "-O", str(self.output_dir), self.accession],
+                    ["prefetch", "--max-size", "200G", "-O", str(self.output_dir), self.accession],
                     check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
                 )
                 logger.debug(f"{self.accession} prefetch stdout: {result.stdout.strip()}")
@@ -122,28 +121,20 @@ class Job:
         return []
     
 
-    def run_alignment(self) -> Path:
-        if not self.fastq_converter:
-            raise RuntimeError("FASTQ converter must run before alignment.")
+    def run_alignment(self) -> list[Path]:
+        if not self.fastq_converter or not self.star_runner:
+            raise RuntimeError("FASTQ files must be converted and STAR runner toggled for alignment")
 
         try:
             fastq_paths = self.fastq_converter.get_fastq_paths(self.accession)
-
-            star_runner = STARRunner(
-                genome_dir=self.genome_dir,
-                output_dir=self.output_dir / self.accession,
-                output_prefix=f"STAR_{self.accession}_",
-                threads=self.star_threads
-            )
-
-            result_path = star_runner.align(self.accession, fastq_paths)
+            star_results = self.star_runner.align(self.accession, fastq_paths)
             self._update_status(PipelineStep.ALIGN, StepStatus.SUCCESS)
-            return result_path
+            return star_results
 
         except Exception as e:
             logger.error(f"STAR alignment failed for {self.accession}: {e}")
             self._update_status(PipelineStep.ALIGN, StepStatus.FAILED)
-            return None
+            return []
 
 
     def run_upload(self, local_file: Path):
@@ -157,7 +148,10 @@ class Job:
 
 
     def _update_status(self, step: PipelineStep, status: StepStatus):
+        # updates sql object
         setattr(self.status, f"{step.value}_status", status)
+        # updates job
+        setattr(self, f"{step.value}_status", status)
         self.manifest_manager.update_step_status(self.accession, step.value, status)
         logger.debug(f"Updated status: {step.value} = {status.value} for {self.accession}")
 

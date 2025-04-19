@@ -6,43 +6,100 @@ from ..star_runner import STARRunner
 
 
 @pytest.fixture
-def mock_star_runner():
+def mock_fastqs():
+    return [Path("fake_R1.fastq"), Path("fake_R2.fastq")]
+
+
+@pytest.fixture
+def basic_star_runner():
+    # STARsolo disabled (regular STAR)
     return STARRunner(
-        genome_dir=Path("/fake/genome_dir"),
-        output_dir=Path("/fake/output_dir"),
-        output_prefix="STAR_",
+        genome_dir=Path("/fake/genome"),
+        star_output=Path("/fake/output"),
+        barcode_whitelist=None,
+        cb_start=None,
+        cb_len=None,
+        umi_start=None,
+        umi_len=None,
+        threads=4
+    )
+
+
+@pytest.fixture
+def solo_star_runner():
+    # STARsolo enabled with whitelist
+    return STARRunner(
+        genome_dir=Path("/fake/genome"),
+        star_output=Path("/fake/output"),
+        barcode_whitelist=Path("/fake/whitelist.txt"),
+        cb_start=1,
+        cb_len=8,
+        umi_start=9,
+        umi_len=8,
         threads=4
     )
 
 
 @patch("pipeline.star_runner.subprocess.run")
-def test_star_align_success(mock_run, mock_star_runner):
-    # Simulate successful STAR execution
+def test_star_align_success(mock_run, basic_star_runner, mock_fastqs):
     mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="")
 
-    fastq_files = [Path("fake_R1.fastq"), Path("fake_R2.fastq")]
-    result = mock_star_runner.align("FAKE_ACC", fastq_files)
+    result = basic_star_runner.align("TEST_ACC", mock_fastqs)
 
-    # Check command call
-    cmd = mock_star_runner._build_star_command(fastq_files)
-    mock_run.assert_called_once_with(cmd, capture_output=True, text=True)
+    # STAR CLI should be called
+    cmd = mock_run.call_args[0][0]
+    assert "STAR" in cmd
+    assert "--readFilesIn" in cmd
+    assert str(mock_fastqs[0]) in cmd
+    assert str(mock_fastqs[1]) in cmd
 
-    # Output SAM file path
-    assert result.name == "STAR_Aligned.out.sam"
+    # Should return list of output files (even if mocked)
+    assert isinstance(result, list)
 
 
 @patch("pipeline.star_runner.subprocess.run")
-def test_star_align_failure(mock_run, mock_star_runner):
-    # Simulate failure in STAR
-    mock_run.return_value = MagicMock(returncode=1, stderr="Some STAR error")
+def test_star_align_with_solo(mock_run, solo_star_runner, mock_fastqs):
+    mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="")
 
-    fastq_files = [Path("fake_R1.fastq"), Path("fake_R2.fastq")]
+    result = solo_star_runner.align("SOLO_ACC", mock_fastqs)
+    cmd = mock_run.call_args[0][0]
+
+    assert "--soloType" in cmd
+    assert "--soloCBstart" in cmd
+    assert "--soloCBwhitelist" in cmd
+    assert str(solo_star_runner.barcode_whitelist) in cmd
+    assert isinstance(result, list)
+
+
+@patch("pipeline.star_runner.subprocess.run")
+def test_star_align_with_solo_autodetect(mock_run, mock_fastqs):
+    # solo fields set, but whitelist is None
+    runner = STARRunner(
+        genome_dir=Path("/fake/genome"),
+        star_output=Path("/fake/output"),
+        barcode_whitelist=None,
+        cb_start=1,
+        cb_len=8,
+        umi_start=9,
+        umi_len=8,
+        threads=4
+    )
+    mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="")
+    runner.align("AUTO_ACC", mock_fastqs)
+
+    cmd = mock_run.call_args[0][0]
+    assert "--soloCBwhitelist" in cmd
+    assert "None" in cmd
+
+
+@patch("pipeline.star_runner.subprocess.run")
+def test_star_align_failure(mock_run, basic_star_runner, mock_fastqs):
+    mock_run.return_value = MagicMock(returncode=1, stderr="fail!")
 
     with pytest.raises(RuntimeError, match="STAR alignment failed"):
-        mock_star_runner.align("FAIL_ACC", fastq_files)
+        basic_star_runner.align("FAIL_ACC", mock_fastqs)
 
 
-def test_star_align_invalid_fastq(mock_star_runner):
-    # Only one FASTQ file — should raise ValueError
-    with pytest.raises(ValueError, match="paired-end FASTQ"):
-        mock_star_runner.align("ACC", [Path("only_one.fastq")])
+def test_star_align_invalid_fastq_count(basic_star_runner):
+    with pytest.raises(ValueError, match="paired-end FASTQ files"):
+        basic_star_runner.align("BAD_ACC", [Path("only_R1.fastq")])

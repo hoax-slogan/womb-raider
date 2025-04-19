@@ -24,7 +24,7 @@ class LogManager:
 
         with log_path.open("w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow([CSV_HEADER])
+            writer.writerow(CSV_HEADER)
 
         logger.info(f"Created new CSV log file: {log_path}")
         return log_path

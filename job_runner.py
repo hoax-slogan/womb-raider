@@ -7,19 +7,20 @@ from .job import Job
 
 class JobRunner:
     def __init__(self, *, output_dir: Path, manifest_manager: ManifestManager, validator,
-                status_checker, s3_handler, fastq_converter, cleanup_local, logger):     
+                status_checker, s3_handler, fastq_converter, star_runner, logger):     
         self.output_dir = output_dir
         self.manifest_manager = manifest_manager
         self.validator = validator
         self.status_checker = status_checker
         self.s3_handler = s3_handler
         self.fastq_converter = fastq_converter
-        self.cleanup_local = cleanup_local
+        self.star_runner = star_runner
         self.logger = logger
 
 
     def run(self, accession: str, source_file: str) -> list[str]:
         fastq_files = []
+        star_files = []
     
         # create local orm session per job executed
         # so no anoying detachedinstance error
@@ -34,6 +35,7 @@ class JobRunner:
                 status_checker=self.status_checker,
                 manifest_manager=manifest,
                 fastq_converter=self.fastq_converter,
+                star_runner=self.star_runner,
                 s3_handler=self.s3_handler
             )
 
@@ -41,53 +43,77 @@ class JobRunner:
             job.run_validation()
 
             # if download successful + convert fastq flag = true
+            # success -> clean sra
             if download_ok and self.fastq_converter:
                 fastq_files = job.run_conversion()
+                if fastq_files:
+                    self._cleanup_sra_file(accession)
+
             
-            # if s3 handler flagged and fast_q files converted
-            if self.s3_handler and fastq_files:
-                for file in fastq_files:
+            # if fastq files exist and star runner = true
+            # success ->  clean fastq
+            if fastq_files and self.star_runner:
+                star_files = job.run_alignment()
+                if star_files:
+                    self._cleanup_fastq_files(fastq_files)
+            
+            # if s3 handler flagged and star files mapped
+            if self.s3_handler and star_files:
+                for file in star_files:
                     job.run_upload(file)
-                    self.logger.info(f"Uploaded {file.name} to S3")
+                    self._cleanup_star_files([file]) # clean file on upload
 
-            # clean those cups and those spoons
-            if self.cleanup_local:
-                self._cleanup_files(accession, fastq_files)
-
-
+            self._cleanup_directories(accession)
             # Extract plain log row BEFORE closing the session
             return job.to_log_row()
 
         finally:
             session.close()
+
+
+    def _cleanup_sra_file(self, accession: str):
+        sra_dir = self.output_dir / accession
+        for suffix in [".sra", ".sra.lite"]:
+            self._safe_unlink(sra_dir / f"{accession}{suffix}")
     
 
-    def _cleanup_files(self, accession: str, fastq_files: list[Path]):
-        sra_file = self.output_dir / accession / f"{accession}.sra"
-        all_files = fastq_files + [sra_file]
+    def _cleanup_fastq_files(self, fastq_files: list[Path]):
+        for file in fastq_files:
+            self._safe_unlink(file)
+    
 
-        for file in all_files:
-            try:
-                if file.exists():
-                    file.unlink()
-                    self.logger.info(f"Deleted local file: {file}")
-                else:
-                    self.logger.debug(f"File not found during cleanup: {file}")
-            except Exception as e:
-                self.logger.warning(f"Failed to delete {file}: {e}")
-
-        # scrub directory after files
-        self._cleanup_directory(accession)
+    def _cleanup_star_files(self, star_files: list[Path]):
+        for file in star_files:
+            self._safe_unlink(file)
 
 
-    def _cleanup_directory(self, accession: str):
-        accession_dir = self.output_dir / accession
-
+    def _safe_unlink(self, file: Path):
         try:
-            if accession_dir.exists() and not any(accession_dir.iterdir()):
-                accession_dir.rmdir()
-                self.logger.info(f"Removed empty accession folder: {accession_dir}")
+            if file.exists():
+                file.unlink()
+                self.logger.info(f"Deleted local file: {file}")
             else:
-                self.logger.debug(f"Directory not empty, skipping removal: {accession_dir}")
+                self.logger.debug(f"File not found during cleanup: {file}")
         except Exception as e:
-            self.logger.warning(f"Failed to delete folder {accession_dir}: {e}")
+            self.logger.warning(f"Failed to delete {file}: {e}")
+
+
+    def _cleanup_directories(self, accession: str):
+        dirs = []
+
+        if self.output_dir:
+            dirs.append(self.output_dir / accession)
+        if self.fastq_converter:
+            dirs.append(self.fastq_converter.output_dir / accession)
+        if self.star_runner:
+            dirs.append(self.star_runner.star_output / accession)
+
+        for dir_path in dirs:
+            try:
+                if dir_path.exists() and not any(dir_path.iterdir()):
+                    dir_path.rmdir()
+                    self.logger.info(f"Removed empty accession folder: {dir_path}")
+                else:
+                    self.logger.debug(f"Skipped non-empty or missing dir: {dir_path}")
+            except Exception as e:
+                self.logger.warning(f"Failed to delete folder {dir_path}: {e}")

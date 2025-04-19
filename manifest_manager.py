@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
-from .db.models import StepStatus, PipelineStatus, JobModel
 import logging
+
+from .db.models import JobModel
+from .enums import StepStatus, PipelineStatus
 
 
 logger = logging.getLogger(__name__)
@@ -24,11 +26,11 @@ class ManifestManager:
             download_status=StepStatus.PENDING, # pending = default assumption
             validate_status=StepStatus.PENDING,
             convert_status=StepStatus.PENDING,
+            align_status=StepStatus.PENDING,
             upload_status=StepStatus.PENDING,
             pipeline_status=PipelineStatus.PENDING,
         )
         self.session.add(new_job)
-        print("DEBUG JOB:", new_job.download_status, type(new_job.download_status))
         self.session.commit()
         return new_job
 
@@ -52,6 +54,7 @@ class ManifestManager:
             job.download_status,
             job.validate_status,
             job.convert_status,
+            job.align_status,
             job.upload_status
         ]
 

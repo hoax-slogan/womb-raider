@@ -2,22 +2,27 @@ import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 import subprocess
-from ..job import Job, StepStatus, PipelineStep
+
+from ..job import Job
+from ..enums import StepStatus
+
+
+class DummyStatus:
+    def __init__(self):
+        self.download_status = None
+        self.validate_status = None
+        self.convert_status = None
+        self.align_status = None
+        self.upload_status = None
+        self.pipeline_status = None
 
 
 @pytest.fixture
 def mock_manifest_manager():
-    # Mock job status object with correct step status fields
-    mock_status = MagicMock()
-    mock_status.download_status = None
-    mock_status.validate_status = None
-    mock_status.convert_status = None
-    mock_status.upload_status = None
-    mock_status.pipeline_status = None
-
+    dummy_status = DummyStatus()
     mock_mm = MagicMock()
-    mock_mm.get_or_create_job.return_value = mock_status
-    return mock_mm, mock_status
+    mock_mm.get_or_create_job.return_value = dummy_status
+    return mock_mm, dummy_status
 
 
 @pytest.fixture
@@ -32,6 +37,7 @@ def fake_job(mock_manifest_manager):
         manifest_manager=mm,
         fastq_converter=MagicMock(),
         s3_handler=MagicMock(),
+        star_runner=MagicMock()
     )
     return job, status
 
@@ -45,7 +51,6 @@ def test_run_download_success(mock_run, fake_job):
     result = job.run_download()
 
     assert result is True
-    assert job.download_status == StepStatus.SUCCESS
     assert status.download_status == StepStatus.SUCCESS
     mock_run.assert_called_once()
 
@@ -58,7 +63,6 @@ def test_run_download_failure(mock_run, fake_job):
     result = job.run_download()
 
     assert result is False
-    assert job.download_status == StepStatus.FAILED
     assert status.download_status == StepStatus.FAILED
     mock_run.assert_called_once()
 
@@ -71,7 +75,6 @@ def test_run_download_skipped(fake_job):
     result = job.run_download()
 
     assert result is True
-    assert job.download_status == StepStatus.SUCCESS
     assert status.download_status == StepStatus.SUCCESS
 
 
@@ -82,7 +85,6 @@ def test_run_validation_success(fake_job):
     result = job.run_validation()
 
     assert result == "Valid"
-    assert job.validate_status == StepStatus.SUCCESS
     assert status.validate_status == StepStatus.SUCCESS
 
 
@@ -93,18 +95,19 @@ def test_run_validation_failure(fake_job):
     result = job.run_validation()
 
     assert "Invalid" in result
-    assert job.validate_status == StepStatus.FAILED
     assert status.validate_status == StepStatus.FAILED
 
 
-def test_run_conversion_success(fake_job):
+@patch("pathlib.Path.exists", return_value=True)
+def test_run_conversion_success(mock_exists, fake_job):
     job, status = fake_job
     job.fastq_converter.convert.return_value = True
+    job.fastq_converter.output_dir = Path("/fake/fastq_dir")
 
-    job.run_conversion()
+    output = job.run_conversion()
 
-    assert job.convert_status == StepStatus.SUCCESS
     assert status.convert_status == StepStatus.SUCCESS
+    assert len(output) == 2
 
 
 def test_run_conversion_failure(fake_job):
@@ -113,8 +116,35 @@ def test_run_conversion_failure(fake_job):
 
     job.run_conversion()
 
-    assert job.convert_status == StepStatus.FAILED
     assert status.convert_status == StepStatus.FAILED
+
+
+def test_run_alignment_success(fake_job):
+    job, status = fake_job
+    job.fastq_converter.get_fastq_paths.return_value = [Path("r1.fastq"), Path("r2.fastq")]
+    expected_outputs = [
+        Path("STAR_Aligned.out.sam"),
+        Path("SJ.out.tab"),
+        Path("Log.out"),
+        Path("Log.final.out")
+    ]
+    job.star_runner.align.return_value = expected_outputs
+
+    result = job.run_alignment()
+
+    assert result == expected_outputs
+    assert status.align_status == StepStatus.SUCCESS
+
+
+def test_run_alignment_failure(fake_job):
+    job, status = fake_job
+    job.fastq_converter.get_fastq_paths.return_value = [Path("r1.fastq"), Path("r2.fastq")]
+    job.star_runner.align.side_effect = Exception("align boom")
+
+    result = job.run_alignment()
+
+    assert result == []
+    assert status.align_status == StepStatus.FAILED
 
 
 def test_run_upload_success(fake_job):
@@ -123,7 +153,6 @@ def test_run_upload_success(fake_job):
 
     job.run_upload(path)
 
-    assert job.upload_status == StepStatus.SUCCESS
     assert status.upload_status == StepStatus.SUCCESS
     job.s3_handler.upload_file.assert_called_once_with(path)
 
@@ -135,5 +164,4 @@ def test_run_upload_failure(fake_job):
 
     job.run_upload(path)
 
-    assert job.upload_status == StepStatus.FAILED
     assert status.upload_status == StepStatus.FAILED

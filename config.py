@@ -22,7 +22,7 @@ class Config:
         self.DATABASE_URL = os.getenv("DATABASE_URL")
         if not self.DATABASE_URL:
             raise ValueError("Missing DATABASE_URL in environment. Please check your .env file.")
-
+    
 
     def _load_config(self, config_file):
         with open(self.script_dir / config_file, "r") as f:
@@ -42,16 +42,16 @@ class Config:
         self.SRA_OUTPUT_DIR = self.DATA_DIR / subdirs["output"]
         self.LOGS_DIR = self.DATA_DIR / subdirs["logs"]
         self.FASTQ_DIR = self.DATA_DIR / subdirs["fastq"]
-        self.STAR_OUTPUT_DIR = self.DATA_DIR / subdirs["star_output"]
+        self.STAR_DIR = self.DATA_DIR / subdirs["star"]
+
 
         logs = self.config["logs"]
         self.CSV_LOG_DIR = self.LOGS_DIR / logs["csv"]
         self.PYTHON_LOG_DIR = self.LOGS_DIR / logs["python"]
 
         star = self.config["star"]
-        self.STAR_GENOME_DIR = self.DATA_DIR / star["genome_dir"]
-        self.STAR_THREADS = star["threads"]
-        self.STAR_OUTPUT_PREFIX = star["output_prefix"]
+        self.STAR_GENOME_DIR = self.STAR_DIR / star["genome_dir"]
+        self.STAR_OUTPUT_DIR = self.STAR_DIR/ star["star_output"]
 
 
     def ensure_directories_exist(self):
@@ -59,6 +59,7 @@ class Config:
             self.SRA_LISTS_DIR,
             self.SRA_OUTPUT_DIR,
             self.FASTQ_DIR,
+            self.STAR_GENOME_DIR,
             self.STAR_OUTPUT_DIR,
             self.CSV_LOG_DIR,
             self.PYTHON_LOG_DIR,

@@ -14,7 +14,7 @@ def mock_config_yaml(tmp_path):
             "output": "sra_files",
             "logs": "logs",
             "fastq": "fastq_files",
-            "star_output": "star_output"
+            "star": "star"
         },
         "logs": {
             "csv": "csv_logs",
@@ -22,8 +22,7 @@ def mock_config_yaml(tmp_path):
         },
         "star": {
             "genome_dir": "genome_ref",
-            "threads": 4,
-            "output_prefix": "STAR_"
+            "star_output": "star_output"
         }
     }
 
@@ -50,12 +49,12 @@ def test_config_paths(mock_config_yaml):
     assert cfg.SRA_OUTPUT_DIR.name == "sra_files"
     assert cfg.LOGS_DIR.name == "logs"
     assert cfg.FASTQ_DIR.name == "fastq_files"
-    assert cfg.STAR_OUTPUT_DIR.name == "star_output"
     assert cfg.CSV_LOG_DIR.name == "csv_logs"
     assert cfg.PYTHON_LOG_DIR.name == "python_logs"
+    assert cfg.STAR_DIR.name == "star"
     assert cfg.STAR_GENOME_DIR.name == "genome_ref"
-    assert cfg.STAR_THREADS == 4
-    assert cfg.STAR_OUTPUT_PREFIX == "STAR_"
+    assert cfg.STAR_OUTPUT_DIR.name == "star_output"
+
     
 
 
@@ -74,6 +73,8 @@ def test_directory_creation(tmp_path, mock_config_yaml):
     assert cfg.SRA_LISTS_DIR.exists()
     assert cfg.SRA_OUTPUT_DIR.exists()
     assert cfg.FASTQ_DIR.exists()
+    assert cfg.STAR_DIR.exists()
     assert cfg.CSV_LOG_DIR.exists()
     assert cfg.PYTHON_LOG_DIR.exists()
+    assert cfg.STAR_GENOME_DIR.exists()
     assert cfg.STAR_OUTPUT_DIR.exists()

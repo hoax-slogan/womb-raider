@@ -1,6 +1,6 @@
-from pathlib import Path
 from ..log_manager import LogManager
-from ..db.models import StepStatus
+from ..enums import StepStatus
+from ..constants import CSV_HEADER
 
 
 def test_generate_csv_log_creates_file_with_header(tmp_path):
@@ -12,7 +12,8 @@ def test_generate_csv_log_creates_file_with_header(tmp_path):
     with log_path.open("r") as f:
         lines = f.readlines()
 
-    assert lines[0].strip() == "Accession,Download Status,Validation Status,Source File"
+    expected_header = ",".join(CSV_HEADER)
+    assert lines[0].strip() == expected_header
     assert len(lines) == 1
 
 

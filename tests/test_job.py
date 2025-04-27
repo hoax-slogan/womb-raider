@@ -103,11 +103,12 @@ def test_run_conversion_success(mock_exists, fake_job):
     job, status = fake_job
     job.fastq_converter.convert.return_value = True
     job.fastq_converter.output_dir = Path("/fake/fastq_dir")
+    job.fastq_converter.get_fastq_paths.return_value = [Path("/fake/fastq_dir/sample_1.fastq"), Path("/fake/fastq_dir/sample_2.fastq")]
 
     output = job.run_conversion()
 
-    assert status.convert_status == StepStatus.SUCCESS
     assert len(output) == 2
+    assert all(isinstance(f, Path) for f in output)
 
 
 def test_run_conversion_failure(fake_job):

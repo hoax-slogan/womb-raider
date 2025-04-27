@@ -52,10 +52,11 @@ class SRAOrchestrator:
         """Returns a FASTQConverter instance if conversion is enabled, else None."""
         if not self.convert_fastq:
             return None
-        return FASTQConverter(self.fastq_file_dir, self.threads)
+        return FASTQConverter(output_dir=self.fastq_file_dir, threads=self.threads)
 
     
     def _get_star_runner(self):
+        """Returns a STARRunner instance if alignment enabled, else None."""
         if not self.align_star:
             return None
         return STARRunner(
@@ -94,6 +95,10 @@ class SRAOrchestrator:
         )
 
         return runner.run(accession, source_file)
+    
+
+    def prepare_for_run(self):
+        self.csv_log_path = self.log_manager.generate_csv_log()
 
 
     def process_batch(self, func: Callable[[Any], Any], args: Iterable[Any]) -> list[Any]:

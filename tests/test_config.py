@@ -55,8 +55,6 @@ def test_config_paths(mock_config_yaml):
     assert cfg.STAR_GENOME_DIR.name == "genome_ref"
     assert cfg.STAR_OUTPUT_DIR.name == "star_output"
 
-    
-
 
 def test_directory_creation(tmp_path, mock_config_yaml):
     class DummyConfig(Config):
@@ -67,7 +65,7 @@ def test_directory_creation(tmp_path, mock_config_yaml):
             self._set_paths()
 
     cfg = DummyConfig(config_file=mock_config_yaml)
-    cfg.ensure_directories_exist()
+    cfg._ensure_directories_exist()
 
     # Check that the paths now exist
     assert cfg.SRA_LISTS_DIR.exists()

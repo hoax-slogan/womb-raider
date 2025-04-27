@@ -3,7 +3,7 @@ from pathlib import Path
 from .db.session import SessionLocal
 from .manifest_manager import ManifestManager
 from .job import Job
-
+from .enums import StepStatus
 
 class JobRunner:
     def __init__(self, *, output_dir: Path, manifest_manager: ManifestManager, validator,
@@ -39,29 +39,37 @@ class JobRunner:
                 s3_handler=self.s3_handler
             )
 
-            download_ok = job.run_download()
+            if self.should_download(job):
+                download_ok = job.run_download()
+            else:
+                download_ok = True
             job.run_validation()
 
             # if download successful + convert fastq flag = true
             # success -> clean sra
             if download_ok and self.fastq_converter:
-                fastq_files = job.run_conversion()
-                if fastq_files:
-                    self._cleanup_sra_file(accession)
+                if self.should_convert(job):
+                    fastq_files = job.run_conversion()
+                    if fastq_files:
+                        self._cleanup_sra_file(accession)
+                else:
+                    fastq_files = job.fastq_converter.get_fastq_paths(accession)
 
             
             # if fastq files exist and star runner = true
             # success ->  clean fastq
-            if fastq_files and self.star_runner:
-                star_files = job.run_alignment()
-                if star_files:
-                    self._cleanup_fastq_files(fastq_files)
+            if self.star_runner and fastq_files:
+                if self.should_align(job):
+                    star_files = job.run_alignment()
+                    if star_files:
+                        self._cleanup_fastq_files(fastq_files)
             
             # if s3 handler flagged and star files mapped
             if self.s3_handler and star_files:
                 for file in star_files:
-                    job.run_upload(file)
-                    self._cleanup_star_files([file]) # clean file on upload
+                    if self.should_upload(job):
+                        job.run_upload(file)
+                        self._cleanup_star_files([file]) # clean file on upload
 
             self._cleanup_directories(accession)
             # Extract plain log row BEFORE closing the session
@@ -71,9 +79,29 @@ class JobRunner:
             session.close()
 
 
+    def _should_skip(self, status) -> bool:
+        return status.value in {StepStatus.SUCCESS, StepStatus.SKIPPED}
+    
+
+    def should_download(self, job) -> bool:
+        return not self._should_skip(job.download_status)
+
+
+    def should_convert(self, job) -> bool:
+        return not self._should_skip(job.convert_status)
+
+
+    def should_align(self, job) -> bool:
+        return not self._should_skip(job.align_status)
+
+
+    def should_upload(self, job) -> bool:
+        return not self._should_skip(job.upload_status)
+
+
     def _cleanup_sra_file(self, accession: str):
         sra_dir = self.output_dir / accession
-        for suffix in [".sra", ".sra.lite"]:
+        for suffix in [".sra", ".sralite"]:
             self._safe_unlink(sra_dir / f"{accession}{suffix}")
     
 

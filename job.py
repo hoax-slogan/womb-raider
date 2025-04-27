@@ -107,11 +107,7 @@ class Job:
 
             if success:
                 self._update_status(PipelineStep.CONVERT, StepStatus.SUCCESS)
-
-                fastq_prefix = self.fastq_converter.output_dir / self.accession
-                r1 = fastq_prefix.with_name(f"{fastq_prefix.name}_1.fastq")
-                r2 = fastq_prefix.with_name(f"{fastq_prefix.name}_2.fastq")
-
+                r1, r2 = self.fastq_converter.get_fastq_paths(self.accession)
                 output_files = [r1, r2] if r1.exists() and r2.exists() else []
                 return output_files
 

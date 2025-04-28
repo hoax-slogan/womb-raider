@@ -23,6 +23,7 @@ class StepStatus(str, Enum):
 class PipelineStep(str, Enum):
     DOWNLOAD = "download"
     VALIDATE = "validate"
+    SPLIT = "split"
     CONVERT = "convert"
     ALIGN = "align"
     UPLOAD = "upload"

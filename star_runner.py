@@ -5,12 +5,12 @@ from typing import List
 
 
 class STARRunner:
-    def __init__(self, *, genome_dir: Path, star_output: Path, barcode_whitelist: Path = None,
+    def __init__(self, *, star_genome_dir: Path, star_output_dir: Path, barcode_whitelist: Path = None,
         threads: int = 4, cb_start: int = None, cb_len: int = None, umi_start: int = None,
         umi_len: int = None
     ):
-        self.genome_dir = genome_dir
-        self.star_output = star_output
+        self.star_genome_dir = star_genome_dir
+        self.star_output_dir = star_output_dir
         self.barcode_whitelist = barcode_whitelist
         self.threads = threads
         self.cb_start = cb_start
@@ -25,11 +25,11 @@ class STARRunner:
         if len(fastq_files) != 2:
             raise ValueError("STARRunner expects paired-end FASTQ files.")
 
-        output_prefix = self.star_output / f"{accession}_"
+        output_prefix = self.star_output_dir / f"{accession}_"
         cmd = self._build_star_command(fastq_files, output_prefix)
 
         self.logger.info(f"Running STAR for {accession}")
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=self.star_output)
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=self.star_output_dir)
 
         if result.returncode != 0:
             self.logger.error(f"STAR failed for {accession}:\n{result.stderr}")
@@ -46,7 +46,7 @@ class STARRunner:
         """Build the STAR command."""
         cmd = [
             "STAR",
-            "--genomeDir", str(self.genome_dir),
+            "--genomeDir", str(self.star_genome_dir),
             "--readFilesIn", str(fastq_files[0]), str(fastq_files[1]),
             "--runThreadN", str(self.threads),
             "--outFileNamePrefix", str(output_prefix) + "/",

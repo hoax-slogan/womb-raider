@@ -1,4 +1,6 @@
 from multiprocessing import Pool as DefaultPool
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from tqdm import tqdm
 from typing import Tuple, Callable, Iterable, Any
 from pathlib import Path
@@ -13,38 +15,42 @@ from .utils import get_sra_lists
 
 class SRAOrchestrator:
     def __init__(self, *, output_dir: Path, sra_lists_dir: Path, csv_log_path: Path,
-                fastq_file_dir: Path, genome_dir: Path, star_output: Path,
-                log_manager, validator, status_checker, manifest_manager,
-                convert_fastq=False, align_star=False, s3_handler=False,
-                s3_bucket=None, s3_prefix="", threads=4, max_retries=5, batch_size=5,
-                pool_cls=DefaultPool, barcode_whitelist: Path = None,
-                cb_start: int = None, cb_len: int = None, umi_start: int = None,
-                umi_len: int = None,):
+                fastq_file_dir: Path, star_genome_dir: Path, star_output_dir: Path,
+                log_manager, validator, status_checker, database_url: str,
+                convert_fastq=False, align_star=False, s3_handler=False, s3_bucket=None,
+                s3_prefix="", threads=4, max_retries=5, batch_size=5, pool_cls=DefaultPool,
+                barcode_whitelist: Path = None, cb_start: int = None,
+                cb_len: int = None, umi_start: int = None, umi_len: int = None):
 
         self.output_dir = output_dir
         self.sra_lists_dir = sra_lists_dir
-        self.genome_dir = genome_dir
-        self.star_output = star_output
         self.csv_log_path = csv_log_path
         self.fastq_file_dir = fastq_file_dir
+        self.star_genome_dir = star_genome_dir
+        self.star_output_dir = star_output_dir
+
         self.log_manager = log_manager
         self.validator = validator
         self.status_checker = status_checker
-        self.manifest_manager = manifest_manager
+        self.database_url = database_url
+
         self.convert_fastq = convert_fastq
         self.align_star = align_star
         self.s3_handler = s3_handler
         self.s3_bucket = s3_bucket
         self.s3_prefix = s3_prefix
+
         self.threads = threads
         self.max_retries = max_retries
         self.batch_size = batch_size
         self.pool_cls = pool_cls
+
         self.barcode_whitelist = barcode_whitelist
         self.cb_start = cb_start
         self.cb_len = cb_len
         self.umi_start = umi_start
         self.umi_len = umi_len
+
         self.logger = logging.getLogger(__name__)
 
 
@@ -60,8 +66,8 @@ class SRAOrchestrator:
         if not self.align_star:
             return None
         return STARRunner(
-            genome_dir=self.genome_dir,
-            star_output=self.star_output,
+            star_genome_dir=self.star_genome_dir,
+            star_output_dir=self.star_output_dir,
             barcode_whitelist=self.barcode_whitelist,
             threads=self.threads,
             cb_start=self.cb_start,
@@ -83,9 +89,12 @@ class SRAOrchestrator:
     def execute_job(self, args: Tuple[str, str]):
         accession, source_file = args
 
+        engine = create_engine(self.database_url)
+        SessionLocal = sessionmaker(bind=engine)
+
         runner = JobRunner(
             output_dir=self.output_dir,
-            manifest_manager=self.manifest_manager,
+            session_maker=SessionLocal,
             validator=self.validator,
             status_checker=self.status_checker,
             s3_handler=self._get_s3_handler(),
@@ -93,7 +102,6 @@ class SRAOrchestrator:
             star_runner=self._get_star_runner(),
             logger=self.logger
         )
-
         return runner.run(accession, source_file)
     
 

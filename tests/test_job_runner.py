@@ -9,7 +9,7 @@ from ..job_runner import JobRunner
 def job_runner():
     return JobRunner(
         output_dir=Path("/fake/output"),
-        manifest_manager=MagicMock(),
+        session_maker=MagicMock(),  # FIXED HERE
         validator=MagicMock(),
         status_checker=MagicMock(),
         star_runner=MagicMock(),
@@ -17,7 +17,6 @@ def job_runner():
         fastq_converter=None,
         logger=MagicMock()
     )
-
 
 def test_cleanup_fastq_files_removes_files(job_runner):
     mock_fastq1 = MagicMock()

@@ -4,7 +4,7 @@ from .db.models import Base
 
 
 cfg = Config()
-engine = create_engine(cfg.DATABASE_URL)
+engine = create_engine(cfg.database_url)
 
 
 Base.metadata.create_all(engine)

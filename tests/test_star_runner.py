@@ -14,8 +14,8 @@ def mock_fastqs():
 def basic_star_runner():
     # STARsolo disabled (regular STAR)
     return STARRunner(
-        genome_dir=Path("/fake/genome"),
-        star_output=Path("/fake/output"),
+        star_genome_dir=Path("/fake/genome"),
+        star_output_dir=Path("/fake/output"),
         barcode_whitelist=None,
         cb_start=None,
         cb_len=None,
@@ -29,8 +29,8 @@ def basic_star_runner():
 def solo_star_runner():
     # STARsolo enabled with whitelist
     return STARRunner(
-        genome_dir=Path("/fake/genome"),
-        star_output=Path("/fake/output"),
+        star_genome_dir=Path("/fake/genome"),
+        star_output_dir=Path("/fake/output"),
         barcode_whitelist=Path("/fake/whitelist.txt"),
         cb_start=1,
         cb_len=8,
@@ -75,8 +75,8 @@ def test_star_align_with_solo(mock_run, solo_star_runner, mock_fastqs):
 def test_star_align_with_solo_autodetect(mock_run, mock_fastqs):
     # solo fields set, but whitelist is None
     runner = STARRunner(
-        genome_dir=Path("/fake/genome"),
-        star_output=Path("/fake/output"),
+        star_genome_dir=Path("/fake/genome"),
+        star_output_dir=Path("/fake/output"),
         barcode_whitelist=None,
         cb_start=1,
         cb_len=8,

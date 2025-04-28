@@ -9,7 +9,6 @@ from ..star_runner import STARRunner
 @pytest.fixture
 def orchestrator_setup():
     mock_log_manager = MagicMock()
-    mock_manifest_manager = MagicMock()
     mock_log_manager.load_accessions_from_file.return_value = ["SRR123456", "SRR789012"]
     mock_log_manager.write_csv_log = MagicMock()
     mock_log_manager.get_failed_accessions.return_value = []
@@ -19,12 +18,11 @@ def orchestrator_setup():
         sra_lists_dir=Path("/fake/lists"),
         csv_log_path=Path("/fake/log.csv"),
         fastq_file_dir=Path("/fake/fastq"),
-        genome_dir=Path("/fake/genome"),
-        star_output=Path("/fake/star_output"),
+        star_genome_dir=Path("/fake/genome"),
+        star_output_dir=Path("/fake/star_output_dir"),
         log_manager=mock_log_manager,
         validator=MagicMock(),
         status_checker=MagicMock(),
-        manifest_manager=mock_manifest_manager,
         convert_fastq=False,
         threads=4,
         max_retries=3,
@@ -81,19 +79,17 @@ def test_retry_failed_with_no_failures(orchestrator_setup):
 
 def test_get_fastq_converter_enabled():
     mock_log = MagicMock()
-    mock_manifest_manager = MagicMock()
 
     orchestrator = SRAOrchestrator(
         output_dir=Path("/x"),
         sra_lists_dir=Path("/x"),
         csv_log_path=Path("/x.csv"),
         fastq_file_dir=Path("/fastq"),
-        genome_dir=Path("/fake/genome"),
-        star_output=Path("/fake/star_output"),
+        star_genome_dir=Path("/fake/genome"),
+        star_output_dir=Path("/fake/star_output_dir"),
         log_manager=mock_log,
         validator=MagicMock(),
         status_checker=MagicMock(),
-        manifest_manager=mock_manifest_manager,
         convert_fastq=True,
         s3_handler=None,
     )
@@ -137,7 +133,6 @@ from ..job_orchestrator import SRAOrchestrator
 @pytest.fixture
 def orchestrator_setup():
     mock_log_manager = MagicMock()
-    mock_manifest_manager = MagicMock()
     mock_log_manager.load_accessions_from_file.return_value = ["SRR123456", "SRR789012"]
     mock_log_manager.write_csv_log = MagicMock()
     mock_log_manager.get_failed_accessions.return_value = []
@@ -147,12 +142,11 @@ def orchestrator_setup():
         sra_lists_dir=Path("/fake/lists"),
         csv_log_path=Path("/fake/log.csv"),
         fastq_file_dir=Path("/fake/fastq"),
-        genome_dir=Path("/fake/genome"),
-        star_output=Path("/fake/star_output"),
+        star_genome_dir=Path("/fake/genome"),
+        star_output_dir=Path("/fake/star_output_dir"),
         log_manager=mock_log_manager,
         validator=MagicMock(),
         status_checker=MagicMock(),
-        manifest_manager=mock_manifest_manager,
         convert_fastq=False,
         threads=4,
         max_retries=3,
@@ -209,19 +203,17 @@ def test_retry_failed_with_no_failures(orchestrator_setup):
 
 def test_get_fastq_converter_enabled():
     mock_log = MagicMock()
-    mock_manifest_manager = MagicMock()
 
     orchestrator = SRAOrchestrator(
         output_dir=Path("/x"),
         sra_lists_dir=Path("/x"),
         csv_log_path=Path("/x.csv"),
         fastq_file_dir=Path("/fastq"),
-        genome_dir=Path("/fake/genome"),
-        star_output=Path("/fake/star_output"),
+        star_genome_dir=Path("/fake/genome"),
+        star_output_dir=Path("/fake/star_output_dir"),
         log_manager=mock_log,
         validator=MagicMock(),
         status_checker=MagicMock(),
-        manifest_manager=mock_manifest_manager,
         convert_fastq=True,
         s3_handler=None,
     )
@@ -262,12 +254,11 @@ def make_minimal_orchestrator(**overrides):
         sra_lists_dir=Path("/lists"),
         csv_log_path=Path("/log.csv"),
         fastq_file_dir=Path("/fastq"),
-        genome_dir=Path("/genome"),
-        star_output=Path("/star"),
+        star_genome_dir=Path("/genome"),
+        star_output_dir=Path("/star"),
         log_manager=MagicMock(),
         validator=MagicMock(),
         status_checker=MagicMock(),
-        manifest_manager=MagicMock(),
         convert_fastq=False,
         align_star=False,
         s3_handler=False,
@@ -312,8 +303,8 @@ def test_get_star_runner_enabled():
     orch = make_minimal_orchestrator(align_star=True)
     runner = orch._get_star_runner()
     assert isinstance(runner, STARRunner)
-    assert runner.genome_dir == Path("/genome")
-    assert runner.star_output == Path("/star")
+    assert runner.star_genome_dir == Path("/genome")
+    assert runner.star_output_dir == Path("/star")
 
 
 # --- execute_job with different flags ---

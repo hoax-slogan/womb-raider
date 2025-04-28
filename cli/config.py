@@ -4,7 +4,7 @@ import typer
 from ..config import Config
 
 
-app = typer.Typer(help="Setup or manage Womb Raider configuration and folders.")
+app = typer.Typer(help="Setup or manage womb-raider configuration and folders.")
 
 
 @app.command("init")

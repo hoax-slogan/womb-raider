@@ -35,6 +35,14 @@ class LogManager:
         log_path = self.python_log_dir / f"pipeline_{timestamp}.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
         return log_path
+    
+
+    def get_latest_csv_log(self) -> Path:
+        """Return the most recently modified CSV log file, or None if none found."""
+        csv_files = list(self.csv_log_dir.glob("*.csv"))
+        if not csv_files:
+            return None
+        return max(csv_files, key=lambda f: f.stat().st_mtime)
 
 
     def write_csv_log(self, results: list[list[str]], log_path: Path) -> None:

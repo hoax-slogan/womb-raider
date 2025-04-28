@@ -1,15 +1,15 @@
 from pathlib import Path
 
-from .db.session import SessionLocal
 from .manifest_manager import ManifestManager
 from .job import Job
 from .enums import StepStatus
 
+
 class JobRunner:
-    def __init__(self, *, output_dir: Path, manifest_manager: ManifestManager, validator,
+    def __init__(self, *, output_dir: Path, session_maker, validator,
                 status_checker, s3_handler, fastq_converter, star_runner, logger):     
         self.output_dir = output_dir
-        self.manifest_manager = manifest_manager
+        self.session_maker = session_maker
         self.validator = validator
         self.status_checker = status_checker
         self.s3_handler = s3_handler
@@ -24,7 +24,8 @@ class JobRunner:
     
         # create local orm session per job executed
         # so no anoying detachedinstance error
-        session = SessionLocal()
+        session = self.session_maker()
+
         try:
             manifest = ManifestManager(session)
             job = Job(

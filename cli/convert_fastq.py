@@ -35,4 +35,5 @@ def convert_fastq(
     if fresh_run:
         orchestrator.prepare_for_run()
 
+    orchestrator.process_sra_lists()
     orchestrator.retry_failed()

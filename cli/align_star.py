@@ -6,7 +6,7 @@ from ..config import Config
 from ..job_orchestrator import SRAOrchestrator
 
 
-app = typer.Typer(help="Align FASTQ files with STAR.")
+app = typer.Typer(help="Align FASTQ files with STAR or STARsolo depending on args.")
 
 
 @app.command("run")
@@ -46,4 +46,5 @@ def align_run(
     if fresh_run:
         orchestrator.prepare_for_run()
     
+    orchestrator.process_sra_lists()
     orchestrator.retry_failed()

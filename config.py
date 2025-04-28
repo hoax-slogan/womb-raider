@@ -62,6 +62,7 @@ class Config:
         self.logs_dir = self.data_dir / subdirs["logs"]
         self.fastq_dir = self.data_dir / subdirs["fastq"]
         self.split_fastq_dir = self.data_dir / subdirs["split_fastq"]
+        self.barcode_dir = self.data_dir / subdirs["barcodes"]
         self.star_dir = self.data_dir / subdirs["star"]
 
         logs = self.config["logs"]
@@ -79,6 +80,7 @@ class Config:
             self.sra_output_dir,
             self.fastq_dir,
             self.split_fastq_dir,
+            self.barcode_dir,
             self.star_genome_dir,
             self.star_output_dir,
             self.csv_log_dir,

@@ -7,6 +7,7 @@ subdirs:
   output: sra_files
   logs: logs
   fastq: fastq_files
+  split_fastq: split_fastq_files
   star: star
 
 logs:

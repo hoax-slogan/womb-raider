@@ -14,6 +14,7 @@ subdirs:
 logs:
   csv: csv_logs
   python: python_logs
+  split: split_logs
 
 star:
   genome_dir: genome_ref

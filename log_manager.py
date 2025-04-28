@@ -12,9 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 class LogManager:
-    def __init__(self, csv_log_dir: Path, python_log_dir: Path):
+    def __init__(self, csv_log_dir: Path, python_log_dir: Path, split_log_dir: Path):
         self.csv_log_dir = csv_log_dir
         self.python_log_dir = python_log_dir
+        self.split_log_dir = split_log_dir
 
 
     def generate_csv_log(self) -> Path:
@@ -54,6 +55,18 @@ class LogManager:
     def load_accessions_from_file(self, file_path: Path) -> list[str]:
         with file_path.open("r") as f:
             return [line.strip() for line in f if line.strip()]
+        
+    
+    def write_unmatched_summary(self, unmatched_barcodes: dict, accession: str):
+        """Write unmatched barcode summary to a file in the given output directory."""
+        summary_path = self.split_log_dir / f"{accession}_unmatched_barcodes.txt"
+
+        with summary_path.open("w") as f:
+            f.write("Barcode\tCount\n")
+            for barcode, count in unmatched_barcodes.items():
+                f.write(f"{barcode}\t{count}\n")
+
+        logger.info(f"Unmatched barcode summary saved to {summary_path}")
     
 
     def get_failed_accessions(self, log_path: Path) -> list[str]:

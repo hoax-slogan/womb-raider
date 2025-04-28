@@ -68,6 +68,7 @@ class Config:
         logs = self.config["logs"]
         self.csv_log_dir = self.logs_dir / logs["csv"]
         self.python_log_dir = self.logs_dir / logs["python"]
+        self.split_log_dir = self.logs_dir / logs["split"]
 
         star = self.config["star"]
         self.star_genome_dir = self.star_dir / star["genome_dir"]
@@ -85,12 +86,13 @@ class Config:
             self.star_output_dir,
             self.csv_log_dir,
             self.python_log_dir,
+            self.split_log_dir,
         ]
         for directory in dirs:
             directory.mkdir(parents=True, exist_ok=True)
 
 
     def _initialize_logging(self):
-        log_manager = LogManager(self.csv_log_dir, self.python_log_dir)
+        log_manager = LogManager(self.csv_log_dir, self.python_log_dir, self.split_log_dir)
         python_log_path = log_manager.generate_python_log()
         setup_logging(python_log_path)

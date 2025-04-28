@@ -1,6 +1,8 @@
 from pathlib import Path
 from collections import defaultdict
+import logging
 import pandas as pd
+from contextlib import ExitStack
 
 
 class FastqSplitter:
@@ -14,6 +16,9 @@ class FastqSplitter:
         self.read2_path = None
         self.file_handles = defaultdict(dict)  # {cell_name: {'1': handle, '2': handle}}
         self.unmatched_handle = {}  # {'1': handle, '2': handle}
+        self.exit_stack = ExitStack()
+
+        self.logger = logging.getLogger(__name__)
         self.barcode_mapping = self._load_barcode_mapping()
 
 
@@ -34,6 +39,7 @@ class FastqSplitter:
                     raise ValueError(f"Duplicate barcode detected: {barcode}")
                 mapping[barcode] = cell_name
 
+        self.logger.info(f"Loaded {len(mapping)} barcode mappings from {self.barcode_dir}")
         return mapping
 
 
@@ -41,24 +47,19 @@ class FastqSplitter:
         if cell_name not in self.file_handles:
             out1 = self.split_fastq_dir / f"{cell_name}_1.fastq"
             out2 = self.split_fastq_dir / f"{cell_name}_2.fastq"
-            self.file_handles[cell_name]['1'] = open(out1, "w")
-            self.file_handles[cell_name]['2'] = open(out2, "w")
+            self.file_handles[cell_name]['1'] = self.exit_stack.enter_context(open(out1, "w"))
+            self.file_handles[cell_name]['2'] = self.exit_stack.enter_context(open(out2, "w"))
 
 
     def _open_unmatched_handles(self):
         unmatched1 = self.split_fastq_dir / "unmatched_1.fastq"
         unmatched2 = self.split_fastq_dir / "unmatched_2.fastq"
-        self.unmatched_handle['1'] = open(unmatched1, "w")
-        self.unmatched_handle['2'] = open(unmatched2, "w")
+        self.unmatched_handle['1'] = self.exit_stack.enter_context(open(unmatched1, "w"))
+        self.unmatched_handle['2'] = self.exit_stack.enter_context(open(unmatched2, "w"))
 
 
     def _close_all_handles(self):
-        for handles in self.file_handles.values():
-            handles['1'].close()
-            handles['2'].close()
-        if self.unmatched_handle:
-            self.unmatched_handle['1'].close()
-            self.unmatched_handle['2'].close()
+        self.exit_stack.close()
 
 
     def _get_pooled_fastqs(self):
@@ -72,43 +73,44 @@ class FastqSplitter:
         self.read1_path = r1[0]
         self.read2_path = r2[0]
 
+        self.logger.info(f"Found paired-end FASTQ files: {self.read1_path.name}, {self.read2_path.name}")
 
-    def split_fastqs(self):
+
+    def split_fastqs(self) -> tuple[list[Path], dict]:
         self._get_pooled_fastqs()
         self._open_unmatched_handles()
 
         unmatched_barcodes = defaultdict(int)
+        created_fastqs = set()
 
-        with open(self.read1_path, "r") as r1_file, open(self.read2_path, "r") as r2_file:
-            while True:
-                r1_lines = [r1_file.readline() for _ in range(4)]
-                r2_lines = [r2_file.readline() for _ in range(4)]
+        try:
+            with open(self.read1_path, "r") as r1_file, open(self.read2_path, "r") as r2_file:
+                while True:
+                    r1_lines = [r1_file.readline() for _ in range(4)]
+                    r2_lines = [r2_file.readline() for _ in range(4)]
 
-                if not r1_lines[0] or not r2_lines[0]:
-                    break  # EOF
+                    if not r1_lines[0] or not r2_lines[0]:
+                        break  # EOF
 
-                barcode = r2_lines[1][:8]  # first 8 bp
-                cell_name = self.barcode_mapping.get(barcode)
+                    barcode = r2_lines[1][:8]
+                    cell_name = self.barcode_mapping.get(barcode)
 
-                if cell_name:
-                    self._open_output_handles(cell_name)
-                    self.file_handles[cell_name]['1'].writelines(r1_lines)
-                    self.file_handles[cell_name]['2'].writelines(r2_lines)
-                else:
-                    unmatched_barcodes[barcode] += 1
-                    self.unmatched_handle['1'].writelines(r1_lines)
-                    self.unmatched_handle['2'].writelines(r2_lines)
+                    if cell_name:
+                        self._open_output_handles(cell_name)
+                        self.file_handles[cell_name]['1'].writelines(r1_lines)
+                        self.file_handles[cell_name]['2'].writelines(r2_lines)
+                        created_fastqs.add(self.split_fastq_dir / f"{cell_name}_1.fastq")
+                        created_fastqs.add(self.split_fastq_dir / f"{cell_name}_2.fastq")
+                    else:
+                        unmatched_barcodes[barcode] += 1
+                        self.unmatched_handle['1'].writelines(r1_lines)
+                        self.unmatched_handle['2'].writelines(r2_lines)
 
-        self._close_all_handles()
-        print(f"Splitting completed. Outputs saved to {self.split_fastq_dir}")
-        self._write_unmatched_summary(unmatched_barcodes)
+        finally:
+            self._close_all_handles()
 
+        self.logger.info(f"Splitting completed: {len(created_fastqs)} FASTQ files created.")
+        if unmatched_barcodes:
+            self.logger.warning(f"Encountered {len(unmatched_barcodes)} unmatched barcodes during splitting.")
 
-    def _write_unmatched_summary(self, unmatched_barcodes: dict):
-        summary_path = self.split_fastq_dir / "unmatched_barcodes.txt"
-        with open(summary_path, "w") as f:
-            f.write("Barcode\tCount\n")
-            for barcode, count in unmatched_barcodes.items():
-                f.write(f"{barcode}\t{count}\n")
-        
-        print(f"Unmatched barcode summary saved to {summary_path}")
+        return list(created_fastqs), unmatched_barcodes

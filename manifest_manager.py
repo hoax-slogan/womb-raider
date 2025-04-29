@@ -26,6 +26,7 @@ class ManifestManager:
             download_status=StepStatus.PENDING, # pending = default assumption
             validate_status=StepStatus.PENDING,
             convert_status=StepStatus.PENDING,
+            split_status=StepStatus.PENDING,
             align_status=StepStatus.PENDING,
             upload_status=StepStatus.PENDING,
             pipeline_status=PipelineStatus.PENDING,
@@ -54,6 +55,7 @@ class ManifestManager:
             job.download_status,
             job.validate_status,
             job.convert_status,
+            job.split_status,
             job.align_status,
             job.upload_status
         ]

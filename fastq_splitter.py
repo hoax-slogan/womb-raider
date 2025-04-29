@@ -5,7 +5,7 @@ import pandas as pd
 from contextlib import ExitStack
 
 
-class FastqSplitter:
+class FASTQSplitter:
     def __init__(self, *, fastq_dir: Path, split_fastq_dir: Path, barcode_dir: Path, threads: int = 4):
         self.fastq_dir = fastq_dir
         self.split_fastq_dir = split_fastq_dir

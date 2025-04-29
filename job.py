@@ -6,7 +6,7 @@ from typing import Optional
 from .validators import SRAValidator
 from .status_checker import DownloadStatusChecker
 from .fastq_converter import FASTQConverter
-from .fastq_splitter import FastqSplitter
+from .fastq_splitter import FASTQSplitter
 from .star_runner import STARRunner
 from .s3_handler import S3Handler
 from .manifest_manager import ManifestManager
@@ -27,7 +27,7 @@ class Job:
         status_checker: DownloadStatusChecker,
         manifest_manager: ManifestManager,
         fastq_converter: Optional[FASTQConverter] = None,
-        fastq_splitter: Optional[FastqSplitter] = None,
+        fastq_splitter: Optional[FASTQSplitter] = None,
         s3_handler: Optional[S3Handler] = None,
         star_runner: Optional[STARRunner] = None,
     ):

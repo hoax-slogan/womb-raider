@@ -16,8 +16,8 @@ class JobModel(Base):
 
     download_status = Column(Enum(StepStatus), default=StepStatus.PENDING)
     validate_status = Column(Enum(StepStatus), default=StepStatus.PENDING)
-    split_status = Column(Enum(StepStatus), default=StepStatus.PENDING)
     convert_status = Column(Enum(StepStatus), default=StepStatus.PENDING)
+    split_status = Column(Enum(StepStatus), default=StepStatus.PENDING)
     align_status = Column(Enum(StepStatus), default=StepStatus.PENDING)
     upload_status = Column(Enum(StepStatus), default=StepStatus.PENDING)
 

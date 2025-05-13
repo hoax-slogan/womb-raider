@@ -1,13 +1,13 @@
 from typing import Dict, Any
 from multiprocessing import Pool as DefaultPool
 
-from ..log_manager import LogManager
+from ..logs.log_manager import LogManager
 from ..validators import SRAValidator
 from ..status_checker import DownloadStatusChecker
-from ..config import Config
+from ..config.config_paths import ConfigPaths
 
 
-def create_pipeline_components(config: Config, overrides: Dict[str, Any]) -> Dict[str, Any]:
+def create_pipeline_components(config: ConfigPaths, overrides: Dict[str, Any]) -> Dict[str, Any]:
     # CLI overrides
     batch_size = overrides.get("batch_size") or config.batch_size
     threads = overrides.get("threads") or config.threads
@@ -28,7 +28,7 @@ def create_pipeline_components(config: Config, overrides: Dict[str, Any]) -> Dic
     umi_len = overrides.get("umi_len")
 
     # Standard pipeline objects
-    log_manager = LogManager(config.csv_log_dir, config.python_log_dir)
+    log_manager = LogManager(config.csv_log_dir, config.python_log_dir, config.split_fastq_dir)
     csv_log_path = log_manager.get_latest_csv_log()
 
     validator = SRAValidator(config.sra_output_dir)
@@ -42,7 +42,7 @@ def create_pipeline_components(config: Config, overrides: Dict[str, Any]) -> Dic
         "star_genome_dir": config.star_genome_dir,
         "star_output_dir": config.star_output_dir,
 
-        "database_url": config.database_url,
+        "database_url": config.get_database_url,
 
         "log_manager": log_manager,
         "validator": validator,

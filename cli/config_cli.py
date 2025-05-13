@@ -1,7 +1,7 @@
 from pathlib import Path
 import typer
 
-from ..config import Config
+from ..config.config import Config
 
 
 app = typer.Typer(help="Setup or manage womb-raider configuration and folders.")

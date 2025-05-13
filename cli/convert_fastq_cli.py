@@ -1,7 +1,7 @@
 from pathlib import Path
 import typer
 
-from ..config import Config
+from ..config.config import Config
 from ..job_orchestrator import SRAOrchestrator
 from .cli_components import create_pipeline_components
 

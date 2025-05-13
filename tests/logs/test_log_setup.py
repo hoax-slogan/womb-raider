@@ -1,6 +1,5 @@
 import logging
-import pytest
-from ..log_setup import setup_logging
+from ...logs.log_setup import setup_logging
 
 
 def test_setup_logging_creates_log_file_and_logs(tmp_path):

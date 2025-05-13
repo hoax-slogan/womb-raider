@@ -1,5 +1,7 @@
+from .enums import StepName
 
-# log_manager.py
+
+# ---- log_manager.py ----
 CSV_HEADER = [
     "Accession",
     "Download Status",
@@ -9,4 +11,14 @@ CSV_HEADER = [
     "Align Status",
     "Upload Status",
     "Source File"
+]
+
+# ---- manifest_manager.py ----
+ALL_STEP_NAMES: list[StepName] = [
+    "download",
+    "validate",
+    "convert",
+    "split",
+    "align",
+    "upload"
 ]

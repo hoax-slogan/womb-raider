@@ -1,11 +1,8 @@
-from sqlalchemy import create_engine
-from .config import Config
-from .db.models import Base 
+from .config import get_database_url
+from .db.models import Base
+from .db.session import get_engine
 
 
-cfg = Config()
-engine = create_engine(cfg.database_url)
-
-
-Base.metadata.create_all(engine)
-print("Database schema created successfully.")
+engine = get_engine(get_database_url())
+Base.metadata.create_all(bind=engine)
+print("[db] Database schema created successfully.")

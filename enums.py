@@ -1,5 +1,5 @@
 from enum import Enum
-
+from typing import Literal
 
 # ----- db/models.py -----
 # tracks status of job lifecycle
@@ -27,3 +27,15 @@ class PipelineStep(str, Enum):
     CONVERT = "convert"
     ALIGN = "align"
     UPLOAD = "upload"
+
+
+# ---- manifest_manager.py ----
+# tracks name of each step
+StepName = Literal[
+    "download",
+    "validate",
+    "convert",
+    "split",
+    "align",
+    "upload"
+]

@@ -2,7 +2,7 @@ import os
 import pytest
 import yaml
 
-from ...config.config_loader import _resolve_threads, load_config, get_database_url
+from ...config.loader import _resolve_threads, load_config, get_database_url
 
 
 # _resolve_threads

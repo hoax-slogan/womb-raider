@@ -6,7 +6,7 @@ from typing import Tuple, Callable, Iterable, Any
 from pathlib import Path
 import logging
 
-from .job_runner import JobRunner
+from .jobs.runner import JobRunner
 from .fastq_converter import FASTQConverter
 from .star_runner import STARRunner
 from .s3_handler import S3Handler

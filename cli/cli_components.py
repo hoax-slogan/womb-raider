@@ -1,10 +1,10 @@
 from typing import Dict, Any
 from multiprocessing import Pool as DefaultPool
 
-from ..logs.log_manager import LogManager
-from ..validators import SRAValidator
+from ..logs.manager import LogManager
+from ..validator import SRAValidator
 from ..status_checker import DownloadStatusChecker
-from ..config.config_paths import ConfigPaths
+from ..config.paths import ConfigPaths
 
 
 def create_pipeline_components(config: ConfigPaths, overrides: Dict[str, Any]) -> Dict[str, Any]:

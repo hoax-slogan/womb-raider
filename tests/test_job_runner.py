@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock
 from pathlib import Path
 
-from ..job_runner import JobRunner
+from ..jobs.runner import JobRunner
 
 
 @pytest.fixture

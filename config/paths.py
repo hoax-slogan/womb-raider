@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from .config_schema import WombRaiderConfig
+from .schema import WombRaiderConfig
 from .path_structs import LogPaths
 
 

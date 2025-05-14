@@ -1,6 +1,6 @@
 import pytest
 
-from ...logs.log_manager import LogManager
+from ...logs.manager import LogManager
 from ...config.path_structs import LogPaths
 from ...enums import StepStatus
 from ...constants import CSV_HEADER

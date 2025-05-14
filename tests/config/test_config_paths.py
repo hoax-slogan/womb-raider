@@ -1,7 +1,7 @@
 import pytest
 
-from ...config.config_paths import ConfigPaths
-from ...config.config_schema import *
+from ...config.paths import ConfigPaths
+from ...config.schema import *
 
 @pytest.fixture
 def dummy_config():

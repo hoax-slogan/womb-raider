@@ -4,7 +4,7 @@ import math
 from pathlib import Path
 from dotenv import load_dotenv
 
-from .config_schema import *
+from .schema import *
 
 
 load_dotenv()

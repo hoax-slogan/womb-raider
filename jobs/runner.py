@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from .manifest_manager import ManifestManager
+from ..manifest_manager import ManifestManager
 from .job import Job
-from .enums import StepStatus
+from ..enums import StepStatus
 
 
 class JobRunner:

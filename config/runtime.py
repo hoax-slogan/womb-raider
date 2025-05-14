@@ -1,4 +1,4 @@
-from .config_paths import ConfigPaths
+from .paths import ConfigPaths
 
 
 def setup_runtime(paths: ConfigPaths, safe: bool = True, setup_logs: bool = True):
@@ -7,9 +7,9 @@ def setup_runtime(paths: ConfigPaths, safe: bool = True, setup_logs: bool = True
             d.mkdir(parents=True, exist_ok=True)
 
     if setup_logs:
-        from ..logs.log_manager import LogManager
-        from ..logs.log_setup import setup_logging
-        from ..config.path_structs import LogPaths
+        from ..logs.manager import LogManager
+        from ..logs.setup import setup_logging
+        from .path_structs import LogPaths
         
         log_paths = LogPaths(
             csv_log_dir=paths.csv_log_dir,

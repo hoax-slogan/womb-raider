@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 import subprocess
 
-from ..job import Job
+from ..jobs.job import Job
 from ..enums import StepStatus
 
 

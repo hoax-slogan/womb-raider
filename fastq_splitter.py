@@ -5,6 +5,8 @@ import pandas as pd
 from contextlib import ExitStack
 
 from .utils import find_gsm_for_demux_pools
+from .tool_results import SplitResult
+from .enums import SplitStatus
 
 
 class FASTQSplitter:
@@ -83,83 +85,88 @@ class FASTQSplitter:
         self.logger.info(f"Found paired-end FASTQ files: {r1.name}, {r2.name}")
 
 
-    def split_fastqs(self) -> tuple[list[Path], dict]:
-        self._get_pooled_fastqs()
-        self._open_unmatched_handles()
-
-        # identify the correct barcode pool
-        info_path = find_gsm_for_demux_pools(self.accession, self.barcode_dir)
-        if not info_path:
-            raise RuntimeError(f"Could not resolve pool (GSM) for SRR {self.accession}")
-
-        gsm_id = info_path.stem.split("_")[0]
-        pool_barcodes = self.barcode_mapping.get(gsm_id)
-        if not pool_barcodes:
-            raise ValueError(f"No barcode mapping found for GSM {gsm_id}")
-
-        # infer barcode length from this pool
-        lengths = {len(bc) for bc in pool_barcodes}
-        if len(lengths) > 1:
-            raise ValueError(f"Inconsistent barcode lengths in pool {gsm_id}: {lengths}")
-        self.barcode_length = lengths.pop()
-
-        unmatched_barcodes = defaultdict(int)
-        reads_per_cell = defaultdict(int)
-        created_fastqs = set()
-
-        total_reads = 0
-        matched_reads = 0
-
+    def split_fastqs(self) -> SplitResult:
         try:
-            with open(self.read1_path, "r") as r1_file, open(self.read2_path, "r") as r2_file:
-                while True:
-                    r1_lines = [r1_file.readline() for _ in range(4)]
-                    r2_lines = [r2_file.readline() for _ in range(4)]
+            self._get_pooled_fastqs()
+            self._open_unmatched_handles()
 
-                    if not r1_lines[0] or not r2_lines[0]:
-                        break  # EOF
+            # identify the correct barcode pool
+            info_path = find_gsm_for_demux_pools(self.accession, self.barcode_dir)
+            if not info_path:
+                msg = f"Could not resolve pool (GSM) for SRR {self.accession}"
+                self.logger.error(msg)
+                return SplitResult(SplitStatus.FAILED, [], {}, msg)
 
-                    total_reads += 1
-                    barcode = r2_lines[1][:self.barcode_length]
-                    sample_name = pool_barcodes.get(barcode)
+            gsm_id = info_path.stem.split("_")[0]
+            pool_barcodes = self.barcode_mapping.get(gsm_id)
+            if not pool_barcodes:
+                msg = f"No barcode mapping found for GSM {gsm_id}"
+                self.logger.error(msg)
+                return SplitResult(SplitStatus.FAILED, [], {}, msg)
 
-                    if sample_name:
-                        self._open_output_handles(sample_name)
-                        self.file_handles[sample_name]['1'].writelines(r1_lines)
-                        self.file_handles[sample_name]['2'].writelines(r2_lines)
-                        reads_per_cell[sample_name] += 1
-                        matched_reads += 1
+            # infer barcode length
+            lengths = {len(bc) for bc in pool_barcodes}
+            if len(lengths) > 1:
+                msg = f"Inconsistent barcode lengths in pool {gsm_id}: {lengths}"
+                self.logger.error(msg)
+                return SplitResult(SplitStatus.FAILED, [], {}, msg)
 
-                        created_fastqs.add(self.split_fastq_dir / f"{sample_name}_1.fastq")
-                        created_fastqs.add(self.split_fastq_dir / f"{sample_name}_2.fastq")
-                    else:
-                        unmatched_barcodes[barcode] += 1
-                        self.unmatched_handle['1'].writelines(r1_lines)
-                        self.unmatched_handle['2'].writelines(r2_lines)
+            self.barcode_length = lengths.pop()
 
-        finally:
-            self._close_all_handles()
+            # do the actual splitting
+            unmatched_barcodes = defaultdict(int)
+            reads_per_cell = defaultdict(int)
+            created_fastqs = set()
 
-        unmatched_reads = total_reads - matched_reads
-        unmatched_rate = round((unmatched_reads / total_reads) * 100, 2) if total_reads else 0.0
+            total_reads = 0
+            matched_reads = 0
 
-        self.logger.info(f"[{self.accession}] Splitting completed: {len(created_fastqs)} FASTQ files created.")
-        self.logger.info(f"[{self.accession}] Total reads: {total_reads} | Matched: {matched_reads} | Unmatched: {unmatched_reads} ({unmatched_rate}%)")
+            try:
+                with open(self.read1_path, "r") as r1_file, open(self.read2_path, "r") as r2_file:
+                    while True:
+                        r1_lines = [r1_file.readline() for _ in range(4)]
+                        r2_lines = [r2_file.readline() for _ in range(4)]
 
-        if matched_reads == 0:
-            self.logger.warning(f"[{self.accession}] No barcodes matched — this sample may not be multiplexed.")
-        if unmatched_barcodes:
-            self.logger.warning(f"[{self.accession}] {len(unmatched_barcodes)} unique unmatched barcodes found.")
+                        if not r1_lines[0] or not r2_lines[0]:
+                            break  # EOF
 
-        summary = {
-            "accession": self.accession,
-            "total_reads": total_reads,
-            "matched_reads": matched_reads,
-            "unmatched_reads": unmatched_reads,
-            "unmatched_rate": unmatched_rate,
-            "unique_barcodes_matched": len(reads_per_cell),
-            "reads_per_cell": dict(reads_per_cell),
-            "top_unmatched_barcodes": dict(sorted(unmatched_barcodes.items(), key=lambda x: -x[1])[:10]),
-        }
+                        total_reads += 1
+                        barcode = r2_lines[1][:self.barcode_length]
+                        sample_name = pool_barcodes.get(barcode)
 
-        return list(created_fastqs), summary
+                        if sample_name:
+                            self._open_output_handles(sample_name)
+                            self.file_handles[sample_name]['1'].writelines(r1_lines)
+                            self.file_handles[sample_name]['2'].writelines(r2_lines)
+                            reads_per_cell[sample_name] += 1
+                            matched_reads += 1
+                            created_fastqs.add(self.split_fastq_dir / f"{sample_name}_1.fastq")
+                            created_fastqs.add(self.split_fastq_dir / f"{sample_name}_2.fastq")
+                        else:
+                            unmatched_barcodes[barcode] += 1
+                            self.unmatched_handle['1'].writelines(r1_lines)
+                            self.unmatched_handle['2'].writelines(r2_lines)
+            finally:
+                self._close_all_handles()
+
+            unmatched_reads = total_reads - matched_reads
+            unmatched_rate = round((unmatched_reads / total_reads) * 100, 2) if total_reads else 0.0
+
+            summary = {
+                "accession": self.accession,
+                "total_reads": total_reads,
+                "matched_reads": matched_reads,
+                "unmatched_reads": unmatched_reads,
+                "unmatched_rate": unmatched_rate,
+                "unique_barcodes_matched": len(reads_per_cell),
+                "reads_per_cell": dict(reads_per_cell),
+                "top_unmatched_barcodes": dict(sorted(unmatched_barcodes.items(), key=lambda x: -x[1])[:10]),
+            }
+
+            self.logger.info(f"[{self.accession}] Splitting completed: {len(created_fastqs)} FASTQ files created.")
+            return SplitResult(SplitStatus.SUCCESS, list(created_fastqs), summary)
+
+        except Exception as e:
+            msg = str(e)
+            self.logger.error(f"[{self.accession}] FASTQ splitting failed: {msg}")
+            return SplitResult(SplitStatus.FAILED, [], {}, msg)

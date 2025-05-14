@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import List
 
+from .enums import DownloadCheckStatus, DownloadConfirmationStatus
+
 
 class DownloadStatusChecker:
     def __init__(self, output_dir: Path, extensions: List[str] = [".sra", ".sralite"]):
@@ -8,21 +10,22 @@ class DownloadStatusChecker:
         self.extensions = extensions
 
 
-    def check_status(self, accession: str) -> str:
+    def check_status(self, accession: str) -> DownloadCheckStatus:
         """
         Check if any valid file exists for the given accession.
         """
         if self._file_exists(accession):
-            return "Already Exists"
+            return DownloadCheckStatus.EXISTS
+        return DownloadCheckStatus.MISSING
 
 
-    def confirm_download(self, accession: str) -> str:
+    def confirm_download(self, accession: str) -> DownloadConfirmationStatus:
         """
-        Check if the download succeeded based on file presence.
+        Confirm whether a download succeeded.
         """
         if self._file_exists(accession):
-            return "Download OK!"
-        return "Download Failed"
+            return DownloadConfirmationStatus.OK
+        return DownloadConfirmationStatus.FAILED
     
     
     def _file_exists(self, accession: str) -> bool:

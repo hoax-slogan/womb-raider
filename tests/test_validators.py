@@ -1,6 +1,6 @@
 from unittest.mock import patch, MagicMock
 import pytest
-from ..validators import SRAValidator
+from ..validator import SRAValidator
 
 
 @pytest.fixture

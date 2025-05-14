@@ -1,9 +1,9 @@
 import pytest
 from pathlib import Path
 
-from ...config.config_runtime import setup_runtime
-from ...config.config_paths import ConfigPaths
-from ...config.config_schema import *
+from ...config.runtime import setup_runtime
+from ...config.paths import ConfigPaths
+from ...config.schema import *
 from ...config.path_structs import LogPaths
 
 
@@ -57,8 +57,8 @@ def test_setup_runtime_calls_logging(monkeypatch, tmp_path, dummy_config):
         log_calls["logging_set_up"] = path
 
     # Patch the actual symbols used inside config_runtime
-    monkeypatch.setattr("pipeline.logs.log_manager.LogManager", DummyLogManager)
-    monkeypatch.setattr("pipeline.logs.log_setup.setup_logging", dummy_setup_logging)
+    monkeypatch.setattr("pipeline.logs.manager.LogManager", DummyLogManager)
+    monkeypatch.setattr("pipeline.logs.setup.setup_logging", dummy_setup_logging)
 
     setup_runtime(paths, safe=False, setup_logs=True)
 

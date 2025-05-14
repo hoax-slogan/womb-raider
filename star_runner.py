@@ -6,7 +6,7 @@ from typing import List
 
 class STARRunner:
     def __init__(self, *, star_genome_dir: Path, star_output_dir: Path, barcode_whitelist: Path = None,
-        threads: int = 4, cb_start: int = None, cb_len: int = None, umi_start: int = None,
+        threads, cb_start: int = None, cb_len: int = None, umi_start: int = None,
         umi_len: int = None
     ):
         self.star_genome_dir = star_genome_dir

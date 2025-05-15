@@ -66,6 +66,7 @@ def load_config(config_path: Path) -> WombRaiderConfig:
         subdirs=SubdirsConfig(**raw["subdirs"]),
         logs=LogsConfig(**raw["logs"]),
         star=StarConfig(**raw["star"]),
+        demux_runtime=DemuxRuntimeConfig(**raw["demux_runtime"]),
         batch_size=raw.get("batch_size", 5),
         threads=_resolve_threads(raw.get("threads")),
         max_retries=raw.get("max_retries", 5),

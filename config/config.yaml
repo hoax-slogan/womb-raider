@@ -19,3 +19,8 @@ logs:
 star:
   genome_dir: genome_ref
   star_output: star_output
+
+demux:
+  output_subdir: split_fastq_files  # ← reuses what's in subdirs
+  entrez_email: your@gmail.com
+  gsm_cache: gsm_cache.json

@@ -13,7 +13,7 @@ class JobExecutor:
         self.tools = tools
         self.manifest = manifest
         self.logger = logging.getLogger(__name__)
-    
+
 
     def run_download(self) -> StepStatus:
         downloader = self.tools.downloader
@@ -30,9 +30,11 @@ class JobExecutor:
             return self._update_status(PipelineStep.DOWNLOAD, StepStatus.FAILED)
 
         elif result.status == DownloadStatus.SKIPPED:
+            self.logger.info(f"SRA file already downloaded for {self.job.accession}")
             return self._update_status(PipelineStep.DOWNLOAD, StepStatus.SKIPPED)
 
         elif result.status == DownloadStatus.SUCCESS:
+            self.logger.info(f"{self.job.accession} successfully downloaded!")
             return self._update_status(PipelineStep.DOWNLOAD, StepStatus.SUCCESS)
 
         else:
@@ -50,8 +52,10 @@ class JobExecutor:
         result = validator.validate(self.job.accession)
 
         if result.status == ValidationStatus.VALID:
+            self.logger.info(f"{self.job.accession} successfully validated!")
             return self._update_status(PipelineStep.VALIDATE, StepStatus.SUCCESS)
         else:
+            self.logger.error(f"Download failed for {self.job.accession}")
             return self._update_status(PipelineStep.VALIDATE, StepStatus.FAILED)
         
     
@@ -59,7 +63,7 @@ class JobExecutor:
         converter = self.tools.converter
 
         if not converter:
-            self.logger.warning("FASTQ converter not provided.")
+            self.logger.warning(f"No FASTQ converter provided; skipping conversion for {self.job.accession}")
             return self._update_status(PipelineStep.CONVERT, StepStatus.SKIPPED), []
 
         result = converter.convert(self.job.accession)
@@ -75,6 +79,33 @@ class JobExecutor:
         else:
             self.logger.error(f"Unexpected conversion status for {self.job.accession}: {result.status}")
             return self._update_status(PipelineStep.CONVERT, StepStatus.FAILED), []
+    
+
+    def run_splitter(self) -> tuple[StepStatus, list[Path], dict]:
+        splitter = self.tools.splitter
+
+        if not splitter:
+            self.logger.warning(f"No FASTQ splitter provided; skipping split for {self.job.accession}")
+            return self._update_status(PipelineStep.SPLIT, StepStatus.SKIPPED), [], {}
+
+        try:
+            result = splitter.split_fastqs()
+
+            if result.status == StepStatus.SUCCESS:
+                self.logger.info(f"FASTQ splitting succeeded for {self.job.accession} ({len(result.output_files)} files created)")
+                return self._update_status(PipelineStep.SPLIT, StepStatus.SUCCESS), result.output_files, result.summary
+
+            elif result.status == StepStatus.FAILED:
+                self.logger.warning(f"FASTQ splitting failed for {self.job.accession}: {result.error_message}")
+                return self._update_status(PipelineStep.SPLIT, StepStatus.FAILED), [], result.summary or {}
+
+            else:
+                self.logger.error(f"Unexpected splitting status for {self.job.accession}: {result.status}")
+                return self._update_status(PipelineStep.SPLIT, StepStatus.FAILED), [], {}
+
+        except Exception as e:
+            self.logger.error(f"Exception during FASTQ splitting for {self.job.accession}: {e}")
+            return self._update_status(PipelineStep.SPLIT, StepStatus.FAILED), [], {}
 
 
     def _update_status(self, step: PipelineStep, status: StepStatus):

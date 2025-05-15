@@ -27,11 +27,19 @@ class StarConfig:
 
 
 @dataclass
+class DemuxConfig:
+    output_subdir: str
+    entrez_email: str
+    gsm_cache: str
+
+
+@dataclass
 class WombRaiderConfig:
     data_dir: str
     subdirs: SubdirsConfig
     logs: LogsConfig
     star: StarConfig
+    demux: DemuxConfig
 
     # optional cli-override-able runtime values
     batch_size: int = 5

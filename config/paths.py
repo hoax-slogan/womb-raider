@@ -36,6 +36,11 @@ class ConfigPaths:
         self.star_genome_dir = self.star_dir / star.genome_dir
         self.star_output_dir = self.star_dir / star.star_output
 
+        # demux-specific: lives under split_fastq_dir
+        demux = self.config.demux
+        self.demux_output_dir = self.data_dir / demux.output_subdir
+        self.demux_gsm_cache = self.demux_output_dir / demux.gsm_cache
+
 
     def get_all_directories(self):
         return [
@@ -49,6 +54,7 @@ class ConfigPaths:
             self.csv_log_dir,
             self.python_log_dir,
             self.split_log_dir,
+            self.demux_output_dir,
         ]
     
     
